@@ -12,7 +12,7 @@ rules = [{ type = "Text", globs = ["**/*.html"], fallthrough = true }]
 # (Cloudflare dashboard > Storage & databases > Workers KV > copy the ID).
 [[kv_namespaces]]
 binding = "DECKS"
-id = "PASTE-KV-ID-HERE"
+id = "d32f5b7911104db292a8fd716de4743f"
 
 [vars]
 # "auto" = use the newest Gemini Flash model your key can see.
