@@ -166,6 +166,8 @@ test("preview tags escape quotes in titles", async () => {
 test("home page has preview tags, mode toggle and the skill", async () => {
   const html = await (await get(env(), "/")).text();
   assert.match(html, /og:image" content="https:\/\/x\.dev\/og\.png"/);
+  const line = "Paste a link, say who&#39;s watching, and get swipeable cards made for you — ready to share with your team or a mate.";
+  for (const n of ['name="description"', 'property="og:description"', 'name="twitter:description"']) assert.ok(html.includes(`<meta ${n} content="${line}">`), n);
   assert.ok(html.includes("For someone else") && html.includes("Download skill") && html.includes("Copy skill"));
   assert.ok(!html.includes("/*SKILL*/null") && !html.includes("<!--PREVIEW-->"));
   assert.equal(html.split("</script>").length, 2, "skill text can't break the page script");

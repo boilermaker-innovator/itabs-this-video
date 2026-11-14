@@ -142,7 +142,7 @@ if(get(K+':useful'))q2();else ask('Was this useful?',[['up','👍'],['down','�
 export function renderHome(origin, featuredId) {
   const tags = previewTags({
     title: "iTabs This Video",
-    description: `Paste any YouTube link, say who's watching, and get swipeable cards made for you. ${TAGLINE}.`,
+    description: "Paste a link, say who's watching, and get swipeable cards made for you — ready to share with your team or a mate.",
     url: origin + "/",
     image: origin + "/og.png",
   });
