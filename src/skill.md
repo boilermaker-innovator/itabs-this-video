@@ -9,14 +9,19 @@ description: Turn any YouTube video into a swipeable iTabs card deck personalise
 
 **Any YouTube video, applied to you.**
 
-## What you need from the user
+## Step 1: Get the video and who it's for
+
+**Easiest:** use this skill in Gemini and just paste the YouTube link — it can watch the video.
+**Other AIs:** copy the transcript from YouTube (description → **Show transcript**).
+
+You need:
 1. A YouTube link (or the video's transcript: on YouTube, open the description and tap **Show transcript**).
 2. Who it's for, in a sentence: e.g. "I run a coffee van in Perth" or "my mate Kristian, building a robot arm".
 3. Language (default English).
 
 If you can't watch the video, ask for the transcript. Never guess what a video says.
 
-## What to make
+## Step 2: Make the cards
 6 to 10 cards, in the order the points appear in the video. The last card is **"Your next step"**: one clear first action for this person.
 
 Each card has:
@@ -32,7 +37,7 @@ Each card has:
 Skip sponsor segments, ads and "like and subscribe" parts.
 If it's for someone else and you know their name, label the blue buttons "For <Name>".
 
-## Output
+## Step 3: Output
 Return a single HTML file: the iTabs template below with ONLY the DATA block filled in. Keep the footer "Any YouTube video, applied to you. Made with iTabs · itabs.co".
 
 ```js

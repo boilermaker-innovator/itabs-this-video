@@ -78,6 +78,15 @@ Everything happens in Safari. There are 5 parts and about 15 minutes in total.
 
 The page shows decks made (today and in total), 👍 vs 👎, how many people did something, and the latest 10 decks. After 5 wrong PINs, it locks for an hour.
 
+## Part G (optional): Show an example deck on the main page
+
+1. Make a deck you like and copy its link, e.g. `https://itabs-this-video.yourname.workers.dev/d/aB3dE6fG`.
+2. In the Worker, tap **Settings** → **Variables and Secrets** → **+ Add**.
+3. **Type:** **Text** (not Secret). **Variable name:** `FEATURED_DECK`. **Value:** the deck link, or just the ID after `/d/` (e.g. `aB3dE6fG`).
+4. Tap **Deploy**. The main page now shows a swipeable example under "How it works".
+
+To change it, edit the value and tap **Deploy**. To hide it, delete the variable. It survives GitHub redeploys, because `keep_vars = true` is set in `wrangler.toml`.
+
 ## Try it
 
 38. On the Worker's page, tap the **Visit** link. It ends in `.workers.dev`, for example `itabs-this-video.yourname.workers.dev`.
@@ -119,6 +128,7 @@ Old workers.dev links keep working.
 | Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
 | Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
 | Make your own | A link in every deck footer, back to the main page. |
+| How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
 
 The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.

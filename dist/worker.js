@@ -162,6 +162,14 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .skill h3{font-size:15px;margin-bottom:2px}.skill p{font-size:13px;color:var(--muted);margin-bottom:12px}
 .skill .row{display:flex;gap:8px}.skill .btn{flex:1;font-size:14px;padding:11px 10px}
 .btn.dl{background:var(--raised);color:var(--fg)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:26px;list-style:none;counter-reset:s}
+.how li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 8px;font-size:12.5px;font-weight:600;line-height:1.25;text-align:center}
+.how li::before{content:counter(s);display:grid;place-items:center;width:22px;height:22px;margin:0 auto 6px;border-radius:50%;background:var(--gold);color:#000;font-size:12px;font-weight:800}
+.how li:nth-child(2)::before{background:var(--bluedot)}
+.ex{margin-top:26px}
+.exh{display:flex;justify-content:space-between;align-items:baseline}.exh h3{font-size:15px}.exh a{font-size:13px;color:var(--bluedot);text-decoration:none;font-weight:600}
+.key2{font-size:12.5px;color:var(--muted);margin:2px 0 8px}.key2 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}.key2 .g{background:var(--gold)}.key2 .b{background:var(--bluedot);margin-left:2px}
+.ex iframe{display:block;width:100%;height:540px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="wrap">
@@ -208,11 +216,15 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
   <button class="btn again" id="again" type="button">Make another</button>
  </div>
 
+ <div id="extras">
+ <ol class="how" aria-label="How it works"><li>Paste a link</li><li>Say who you are</li><li>Get your iTabs</li></ol>
+ <!--EXAMPLE-->
  <section class="skill" id="skill">
   <h3>Got your own AI?</h3>
   <p>Use the skill in ChatGPT, Claude or Gemini.</p>
   <div class="row"><a class="btn dl" href="/skill.md" download="itabs-this-video-skill.md">Download skill</a><button class="btn copy" id="copySkill" type="button">Copy skill</button></div>
  </section>
+ </div>
 
  <div class="foot">Any YouTube video, applied to you. <small>\xB7 Made with <b>iTabs</b> \xB7 itabs.co</small></div>
 </div>
@@ -228,7 +240,7 @@ const about=$('about'),count=$('count');
 const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300)};
 about.addEventListener('input',upd);
 function err(t){$('err').textContent=t;$('err').hidden=!t;if(t)$('err').scrollIntoView({block:'center',behavior:'smooth'})}
-function view(v){$('form').hidden=v!=='form';$('skill').hidden=v==='loading';$('loading').hidden=v!=='loading';$('done').hidden=v!=='done';window.scrollTo(0,0)}
+function view(v){$('form').hidden=v!=='form';$('extras').hidden=v==='loading';$('loading').hidden=v!=='loading';$('done').hidden=v!=='done';window.scrollTo(0,0)}
 const MSGS=['Watching the video\u2026','Picking out the key points\u2026','Applying it to you\u2026','Writing your cards\u2026','Nearly there\u2026'];
 let timer;
 function startMsgs(transcript){let i=0;$('msg').textContent=transcript?'Reading the transcript\u2026':MSGS[0];clearInterval(timer);timer=setInterval(()=>{i=Math.min(i+1,MSGS.length-1);$('msg').textContent=MSGS[i]},9000)}
@@ -275,14 +287,19 @@ description: Turn any YouTube video into a swipeable iTabs card deck personalise
 
 **Any YouTube video, applied to you.**
 
-## What you need from the user
+## Step 1: Get the video and who it's for
+
+**Easiest:** use this skill in Gemini and just paste the YouTube link \u2014 it can watch the video.
+**Other AIs:** copy the transcript from YouTube (description \u2192 **Show transcript**).
+
+You need:
 1. A YouTube link (or the video's transcript: on YouTube, open the description and tap **Show transcript**).
 2. Who it's for, in a sentence: e.g. "I run a coffee van in Perth" or "my mate Kristian, building a robot arm".
 3. Language (default English).
 
 If you can't watch the video, ask for the transcript. Never guess what a video says.
 
-## What to make
+## Step 2: Make the cards
 6 to 10 cards, in the order the points appear in the video. The last card is **"Your next step"**: one clear first action for this person.
 
 Each card has:
@@ -298,7 +315,7 @@ Each card has:
 Skip sponsor segments, ads and "like and subscribe" parts.
 If it's for someone else and you know their name, label the blue buttons "For <Name>".
 
-## Output
+## Step 3: Output
 Return a single HTML file: the iTabs template below with ONLY the DATA block filled in. Keep the footer "Any YouTube video, applied to you. Made with iTabs \xB7 itabs.co".
 
 \`\`\`js
@@ -454,11 +471,11 @@ var worker_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin));
+      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
       const m = url.pathname.match(/^\/d\/([A-Za-z0-9]{6,16})\/?$/);
-      if (m && request.method === "GET") return await showDeck(m[1], env, url.origin);
+      if (m && request.method === "GET") return await showDeck(m[1], env, url.origin, url.searchParams.has("embed"));
       if (url.pathname === "/skill.md") return new Response(skill_default, { headers: {
         "content-type": "text/markdown; charset=utf-8",
         "content-disposition": 'attachment; filename="itabs-this-video-skill.md"',
@@ -475,11 +492,21 @@ var worker_default = {
     }
   }
 };
-async function showDeck(id, env, origin) {
+async function showDeck(id, env, origin, embed) {
   const raw = await env.DECKS.get("deck:" + id);
   if (!raw) return html(messagePage("Deck not found", "This iTabs link doesn't exist or has expired."), 404);
   const data = JSON.parse(raw);
-  return html(decorateDeck(renderDeck(data), data, id, origin), 200, { "Cache-Control": "public, max-age=300" });
+  return html(decorateDeck(renderDeck(data), data, id, origin, embed), 200, { "Cache-Control": "public, max-age=300" });
+}
+async function featuredDeck(env) {
+  const raw = String(env.FEATURED_DECK || "").trim();
+  const m = raw.match(/(?:\/d\/)?([A-Za-z0-9]{6,16})\/?(?:[?#].*)?$/);
+  if (!m || !env.DECKS) return null;
+  try {
+    return await env.DECKS.get("deck:" + m[1]) ? m[1] : null;
+  } catch {
+    return null;
+  }
 }
 var escAttr = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 var TAGLINE = "Any YouTube video, applied to you";
@@ -498,16 +525,18 @@ function previewTags({ title, description, url, image }) {
 <meta name="twitter:description" content="${d}">
 <meta name="twitter:image" content="${i}">`;
 }
-function decorateDeck(page, data, id, origin) {
+function decorateDeck(page, data, id, origin, embed) {
   const head = previewTags({
     title: data.videoTitle,
     description: `Personalised for ${data.forWho} \xB7 ${TAGLINE}`,
     url: `${origin}/d/${id}`,
     image: data.videoId ? `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg` : `${origin}/og.png`
   });
-  const extras = DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
+  const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
   return page.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
 }
+var EMBED_EXTRAS = `<meta name="robots" content="noindex"><style>.tag{display:none}.wrap{padding-bottom:6px}</style>
+`;
 var DECK_EXTRAS = `<style>
 .foot .share{background:var(--raised);color:var(--fg);border:0;padding:7px 14px;border-radius:18px;font:600 13px inherit;font-family:inherit;margin-left:6px;cursor:pointer}
 .foot>.l{display:flex;align-items:center}
@@ -540,7 +569,7 @@ if(get(K+':useful'))q2();else ask('Was this useful?',[['up','\u{1F44D}'],['down'
 })();
 <\/script>
 `;
-function renderHome(origin) {
+function renderHome(origin, featuredId) {
   const tags = previewTags({
     title: "iTabs This Video",
     description: `Paste any YouTube link, say who's watching, and get swipeable cards made for you. ${TAGLINE}.`,
@@ -548,7 +577,12 @@ function renderHome(origin) {
     image: origin + "/og.png"
   });
   const skillJson = JSON.stringify(skill_default).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
-  return page_default.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson);
+  const example = featuredId ? `<section class="ex" aria-label="Example iTabs">
+  <div class="exh"><h3>See an example</h3><a href="/d/${featuredId}" target="_blank" rel="noopener">Open \u2197</a></div>
+  <p class="key2"><i class="g"></i>Gold = from the video \xB7 <i class="b"></i>Blue = for you</p>
+  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy"></iframe>
+ </section>` : "";
+  return page_default.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example);
 }
 var START = "/* ===== ONLY EDIT THIS DATA BLOCK ===== */";
 var END = "/* ===== END DATA BLOCK ===== */";

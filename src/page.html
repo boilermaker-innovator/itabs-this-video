@@ -49,6 +49,14 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .skill h3{font-size:15px;margin-bottom:2px}.skill p{font-size:13px;color:var(--muted);margin-bottom:12px}
 .skill .row{display:flex;gap:8px}.skill .btn{flex:1;font-size:14px;padding:11px 10px}
 .btn.dl{background:var(--raised);color:var(--fg)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:26px;list-style:none;counter-reset:s}
+.how li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 8px;font-size:12.5px;font-weight:600;line-height:1.25;text-align:center}
+.how li::before{content:counter(s);display:grid;place-items:center;width:22px;height:22px;margin:0 auto 6px;border-radius:50%;background:var(--gold);color:#000;font-size:12px;font-weight:800}
+.how li:nth-child(2)::before{background:var(--bluedot)}
+.ex{margin-top:26px}
+.exh{display:flex;justify-content:space-between;align-items:baseline}.exh h3{font-size:15px}.exh a{font-size:13px;color:var(--bluedot);text-decoration:none;font-weight:600}
+.key2{font-size:12.5px;color:var(--muted);margin:2px 0 8px}.key2 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}.key2 .g{background:var(--gold)}.key2 .b{background:var(--bluedot);margin-left:2px}
+.ex iframe{display:block;width:100%;height:540px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="wrap">
@@ -95,11 +103,15 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
   <button class="btn again" id="again" type="button">Make another</button>
  </div>
 
+ <div id="extras">
+ <ol class="how" aria-label="How it works"><li>Paste a link</li><li>Say who you are</li><li>Get your iTabs</li></ol>
+ <!--EXAMPLE-->
  <section class="skill" id="skill">
   <h3>Got your own AI?</h3>
   <p>Use the skill in ChatGPT, Claude or Gemini.</p>
   <div class="row"><a class="btn dl" href="/skill.md" download="itabs-this-video-skill.md">Download skill</a><button class="btn copy" id="copySkill" type="button">Copy skill</button></div>
  </section>
+ </div>
 
  <div class="foot">Any YouTube video, applied to you. <small>· Made with <b>iTabs</b> · itabs.co</small></div>
 </div>
@@ -115,7 +127,7 @@ const about=$('about'),count=$('count');
 const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300)};
 about.addEventListener('input',upd);
 function err(t){$('err').textContent=t;$('err').hidden=!t;if(t)$('err').scrollIntoView({block:'center',behavior:'smooth'})}
-function view(v){$('form').hidden=v!=='form';$('skill').hidden=v==='loading';$('loading').hidden=v!=='loading';$('done').hidden=v!=='done';window.scrollTo(0,0)}
+function view(v){$('form').hidden=v!=='form';$('extras').hidden=v==='loading';$('loading').hidden=v!=='loading';$('done').hidden=v!=='done';window.scrollTo(0,0)}
 const MSGS=['Watching the video…','Picking out the key points…','Applying it to you…','Writing your cards…','Nearly there…'];
 let timer;
 function startMsgs(transcript){let i=0;$('msg').textContent=transcript?'Reading the transcript…':MSGS[0];clearInterval(timer);timer=setInterval(()=>{i=Math.min(i+1,MSGS.length-1);$('msg').textContent=MSGS[i]},9000)}

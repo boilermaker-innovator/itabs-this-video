@@ -215,3 +215,26 @@ test("stats page needs the PIN and shows the numbers", async () => {
   assert.equal((await get(e, "/stats", form("4321"))).status, 429, "locks out after 5 wrong tries");
   assert.equal((await get(env(), "/stats")).status, 503, "off when no STATS_PIN");
 });
+
+test("featured example deck: shown when FEATURED_DECK is a real deck, hidden otherwise", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { id } = await (await post(e, base)).json();
+  const home = async (v) => (await get({ ...e, FEATURED_DECK: v }, "/")).text();
+  for (const v of [id, ` https://itabs-this-video.x.workers.dev/d/${id} `, `/d/${id}?x=1`]) {
+    const h = await home(v);
+    assert.ok(h.includes(`<iframe src="/d/${id}?embed"`), "shown for " + v);
+    assert.ok(h.includes("Gold = from the video · ") && h.includes("Blue = for you"));
+  }
+  for (const v of [undefined, "", "   ", "nope1234", "<script>"]) assert.ok(!(await home(v)).includes("<iframe"), "hidden for " + v);
+  assert.ok((await home("")).includes("Paste a link") && (await home("")).includes("Get your iTabs"));
+  const emb = await (await get(e, `/d/${id}?embed`)).text();
+  assert.ok(!emb.includes("Was this useful?") && !emb.includes("navigator.share"), "embed has no feedback/share");
+  assert.ok((await (await get(e, `/d/${id}`)).text()).includes("Was this useful?"));
+});
+
+test("skill file tells people about Gemini and transcripts in Step 1", async () => {
+  const t = await (await get(env(), "/skill.md")).text();
+  const step1 = t.indexOf("## Step 1");
+  assert.ok(step1 > 0 && t.indexOf("**Easiest:** use this skill in Gemini and just paste the YouTube link — it can watch the video.") > step1);
+  assert.ok(t.includes("**Other AIs:** copy the transcript from YouTube (description → **Show transcript**)."));
+});

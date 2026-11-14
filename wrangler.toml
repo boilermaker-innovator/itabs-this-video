@@ -4,6 +4,10 @@ main = "src/worker.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
+# Keep variables you set in the Cloudflare dashboard (like FEATURED_DECK)
+# when GitHub pushes redeploy the Worker.
+keep_vars = true
+
 # Lets the worker import the .html/.md files as text and the .png as data
 rules = [
   { type = "Text", globs = ["**/*.html", "**/*.md"], fallthrough = true },
@@ -21,6 +25,8 @@ id = "d32f5b7911104db292a8fd716de4743f"
 # "auto" = use the newest Gemini Flash model your key can see.
 # Or set an exact model name, e.g. "gemini-2.5-flash".
 GEMINI_MODEL = "auto"
+# FEATURED_DECK (the example deck on the main page) is set in the dashboard,
+# not here: Worker > Settings > Variables and Secrets > Add > Type: Text.
 
 [observability]
 enabled = true

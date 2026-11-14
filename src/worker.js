@@ -32,11 +32,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin));
+      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
       const m = url.pathname.match(/^\/d\/([A-Za-z0-9]{6,16})\/?$/);
-      if (m && request.method === "GET") return await showDeck(m[1], env, url.origin);
+      if (m && request.method === "GET") return await showDeck(m[1], env, url.origin, url.searchParams.has("embed"));
       if (url.pathname === "/skill.md") return new Response(SKILL, { headers: {
         "content-type": "text/markdown; charset=utf-8",
         "content-disposition": 'attachment; filename="itabs-this-video-skill.md"', ...SECURITY_HEADERS } });
@@ -54,11 +54,20 @@ export default {
 
 /* ---------------- deck page ---------------- */
 
-async function showDeck(id, env, origin) {
+async function showDeck(id, env, origin, embed) {
   const raw = await env.DECKS.get("deck:" + id);
   if (!raw) return html(messagePage("Deck not found", "This iTabs link doesn't exist or has expired."), 404);
   const data = JSON.parse(raw);
-  return html(decorateDeck(renderDeck(data), data, id, origin), 200, { "Cache-Control": "public, max-age=300" });
+  return html(decorateDeck(renderDeck(data), data, id, origin, embed), 200, { "Cache-Control": "public, max-age=300" });
+}
+
+// FEATURED_DECK (dashboard Text variable): a deck ID like "aB3dE6fG" or a full deck link.
+// Returns the ID only if that deck exists; otherwise the example is hidden.
+async function featuredDeck(env) {
+  const raw = String(env.FEATURED_DECK || "").trim();
+  const m = raw.match(/(?:\/d\/)?([A-Za-z0-9]{6,16})\/?(?:[?#].*)?$/);
+  if (!m || !env.DECKS) return null;
+  try { return (await env.DECKS.get("deck:" + m[1])) ? m[1] : null; } catch { return null; }
 }
 
 const escAttr = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -82,16 +91,20 @@ export function previewTags({ title, description, url, image }) {
 
 // The template file itself is never edited: preview tags go into <head>, and the
 // extras (Share, feedback, "Make your own") are added just before </body>.
-export function decorateDeck(page, data, id, origin) {
+export function decorateDeck(page, data, id, origin, embed) {
   const head = previewTags({
     title: data.videoTitle,
     description: `Personalised for ${data.forWho} · ${TAGLINE}`,
     url: `${origin}/d/${id}`,
     image: data.videoId ? `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg` : `${origin}/og.png`,
   });
-  const extras = DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
+  // Embedded example on the main page: no feedback (keeps stats honest), no Share/"Make your own".
+  const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
   return page.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
 }
+
+const EMBED_EXTRAS = `<meta name="robots" content="noindex"><style>.tag{display:none}.wrap{padding-bottom:6px}</style>
+`;
 
 const DECK_EXTRAS = `<style>
 .foot .share{background:var(--raised);color:var(--fg);border:0;padding:7px 14px;border-radius:18px;font:600 13px inherit;font-family:inherit;margin-left:6px;cursor:pointer}
@@ -126,7 +139,7 @@ if(get(K+':useful'))q2();else ask('Was this useful?',[['up','👍'],['down','�
 </script>
 `;
 
-export function renderHome(origin) {
+export function renderHome(origin, featuredId) {
   const tags = previewTags({
     title: "iTabs This Video",
     description: `Paste any YouTube link, say who's watching, and get swipeable cards made for you. ${TAGLINE}.`,
@@ -134,7 +147,14 @@ export function renderHome(origin) {
     image: origin + "/og.png",
   });
   const skillJson = JSON.stringify(SKILL).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
-  return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson);
+  const example = featuredId
+    ? `<section class="ex" aria-label="Example iTabs">
+  <div class="exh"><h3>See an example</h3><a href="/d/${featuredId}" target="_blank" rel="noopener">Open ↗</a></div>
+  <p class="key2"><i class="g"></i>Gold = from the video · <i class="b"></i>Blue = for you</p>
+  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy"></iframe>
+ </section>`
+    : "";
+  return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example);
 }
 
 const START = "/* ===== ONLY EDIT THIS DATA BLOCK ===== */";
