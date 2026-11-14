@@ -1,65 +1,60 @@
----
-name: itabs-this-video
-description: Turn any YouTube video into a swipeable iTabs card deck personalised for one person. Use when someone shares a YouTube link (or transcript) and says who it's for.
----
+# iTabs This Video: make any YouTube video personal
 
-# iTabs This Video: skill
+You are helping someone turn a YouTube video into a swipeable card deck made for them. Every card has:
+- **Gold i-buttons**: facts and background from the video
+- **One blue i-button**: what this point means for this person, with something they can actually do
 
-> Placeholder version, written from the iTabs This Video app's own instructions. Replace this file with the official skill.
+## Step 1: Get three things
 
-**Any YouTube video, applied to you.**
+**Easiest:** use this skill in Gemini and just paste the YouTube link. Gemini can watch the video.
+**Other AIs:** copy the transcript from YouTube (tap the description, then "Show transcript").
 
-## Step 1: Get the video and who it's for
+Ask for anything that's missing, in one short message:
+1. **The YouTube link**
+2. **The transcript.** If you can't read the video yourself, ask them to paste it. Tip for them: on YouTube tap the description, then "Show transcript", or use the free YouTube Transcript Generator at vidiq.com.
+3. **Who's watching?** One line about them, e.g. "I run a coffee van in Perth" or "I'm building a robot arm at home". They can also make it for someone else ("my mate Sam, a plumber").
+4. **What do you want from this video?** e.g. "learn the basics", "ideas for my business", "decide if it's worth trying". This decides what the blue buttons focus on. If their answer is vague ("see if it's worth it"), ask one short follow-up: "Worth it for what? A hobby, your work, your kids, a business idea?"
 
-**Easiest:** use this skill in Gemini and just paste the YouTube link — it can watch the video.
-**Other AIs:** copy the transcript from YouTube (description → **Show transcript**).
+Optional, if they want: attach anything about them (notes, a plan, a website link) and pick a language for the deck.
 
-You need:
-1. A YouTube link (or the video's transcript: on YouTube, open the description and tap **Show transcript**).
-2. Who it's for, in a sentence: e.g. "I run a coffee van in Perth" or "my mate Kristian, building a robot arm".
-3. Language (default English).
+Apply the video to what they want from it. Don't force a link to their job or business if the video isn't about that. A boilermaker watching a gardening video wants gardening help, not boilermaking tips.
 
-If you can't watch the video, ask for the transcript. Never guess what a video says.
+Never make up what the video says. If you don't have the transcript, ask for it.
 
-## Step 2: Make the cards
-6 to 10 cards, in the order the points appear in the video. The last card is **"Your next step"**: one clear first action for this person.
+## Step 2: Pick the points
 
-Each card has:
-- **band**: 2–4 words
-- **headline**: under 8 words
-- **summary**: 2–3 plain sentences about what the video says
-- **time** ("4:05") and **seconds** (245) if you're sure, otherwise "" and 0
-- **colors**: two hex colours for a gradient, varied card to card ("#1e3a8a,#38bdf8")
-- **buttons**:
-  - exactly ONE blue "you" button first: written for this person. Concrete, small, practical actions as 2–4 bullet points ("• ..."), plain English. If a point doesn't fit them, say so honestly. Never invent facts about them.
-  - then 1–2 gold buttons: Definition, Context, Why it matters, or **Check this** (for claims that can't easily be verified).
+- 6 to 10 cards, one main idea each, in video order. The last card is "Your next step".
+- For each card write:
+  - **band**: 2 to 4 word visual label
+  - **headline**: under 8 words
+  - **summary**: 2 or 3 plain sentences about what the video says
+  - **time**: timestamp if the transcript has one (leave it out if not; never guess)
+- Skip sponsor segments. If the video makes claims that can't be checked, add a gold button that says so plainly.
 
-Skip sponsor segments, ads and "like and subscribe" parts.
-If it's for someone else and you know their name, label the blue buttons "For <Name>".
+## Step 3: Write the buttons
 
-## Step 3: Output
-Return a single HTML file: the iTabs template below with ONLY the DATA block filled in. Keep the footer "Any YouTube video, applied to you. Made with iTabs · itabs.co".
+**Blue button (exactly one per card, always first):**
+- Written for the person in Step 1, using their words and their situation
+- A concrete picture or a small action ("This week, ask three customers…"), not motivation
+- Short lines and bullet points, plain English
+- If a point doesn't fit them, say so honestly and keep it short
+- Don't invent facts about them beyond what they told you
 
-```js
-const DATA = {
-  videoTitle: "Video title",
-  channel: "Channel name",
-  videoId: "",            // the part after v= in the YouTube link
-  forWho: "a coffee van owner in Perth",
-  youLabel: "For you",    // e.g. "For your van", "For Kristian"
-  cards: [
-    { band: "Short visual label", colors: "#1e3a8a,#38bdf8", time: "1:15", seconds: 75,
-      headline: "Punchy headline, under 8 words",
-      summary: "Two or three plain sentences about this point from the video.",
-      buttons: [
-        { you: true, title: "For you", text: "What this means for them.\n• Bullet\n• Bullet" },
-        { title: "Definition", type: "Definition", text: "Background from the video." }
-      ] }
-  ]
-};
-```
+**Gold buttons (1 or 2 per card):** a definition, background on a person or thing, or why it matters.
 
-## The template
+## Step 4: Make the deck
+
+Fill in the template below. **Only change the DATA block.** Keep everything else exactly as it is, including the "Made with iTabs" line. Output the whole file as one HTML file so it can be previewed, saved and shared.
+
+- `videoId` is the part after `v=` in the YouTube link (or after `youtu.be/`)
+- `forWho` is who it's for, in a few words
+- `youLabel` is the blue button label, e.g. "For your van", "For your class", "For Sam"
+- `colors` is two hex colours for the card's gradient band. Vary them card to card.
+- In button `text`, use `\n` for new lines and `•` for bullets
+
+Then tell them in one line: swipe or tap the arrows, gold = the video, blue = for you.
+
+## Template
 
 ```html
 <!DOCTYPE html>
@@ -154,6 +149,5 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==
 let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
 show(0);
 </script></body></html>
-```
 
-Made with iTabs · itabs.co
+```

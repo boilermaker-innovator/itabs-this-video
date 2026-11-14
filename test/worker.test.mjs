@@ -178,7 +178,7 @@ test("skill downloads as markdown with the right filename", async () => {
   const r = await get(env(), "/skill.md");
   assert.equal(r.headers.get("content-type"), "text/markdown; charset=utf-8");
   assert.match(r.headers.get("content-disposition"), /filename="itabs-this-video-skill\.md"/);
-  assert.match(await r.text(), /^---\nname: itabs-this-video/);
+  assert.match(await r.text(), /^# iTabs This Video: make any YouTube video personal/);
 });
 
 test("'for someone else' mode changes the prompt", async () => {
@@ -232,9 +232,9 @@ test("featured example deck: shown when FEATURED_DECK is a real deck, hidden oth
   assert.ok((await (await get(e, `/d/${id}`)).text()).includes("Was this useful?"));
 });
 
-test("skill file tells people about Gemini and transcripts in Step 1", async () => {
+test("served skill is the official file, byte for byte", async () => {
+  const { readFileSync } = await import("node:fs");
   const t = await (await get(env(), "/skill.md")).text();
-  const step1 = t.indexOf("## Step 1");
-  assert.ok(step1 > 0 && t.indexOf("**Easiest:** use this skill in Gemini and just paste the YouTube link — it can watch the video.") > step1);
-  assert.ok(t.includes("**Other AIs:** copy the transcript from YouTube (description → **Show transcript**)."));
+  assert.equal(t, readFileSync(new URL("../src/skill.md", import.meta.url), "utf8"));
+  assert.ok(t.indexOf("**Easiest:** use this skill in Gemini") > t.indexOf("## Step 1: Get three things"));
 });
