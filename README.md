@@ -69,6 +69,15 @@ Everything happens in Safari. There are 5 parts and about 15 minutes in total.
 36. Tap **Deploy** (or **Save and deploy**).
 37. Delete the key from your Notes app.
 
+## Part F (optional): Turn on your stats page
+
+1. In the Worker, tap **Settings**. Scroll to **Variables and Secrets** and tap **+ Add**.
+2. **Type:** **Secret**. **Variable name:** `STATS_PIN`. **Value:** a PIN only you know, at least 6 digits.
+3. Tap **Deploy**.
+4. Visit `/stats` on your site, for example `itabs-this-video.yourname.workers.dev/stats`, and type the PIN.
+
+The page shows decks made (today and in total), 👍 vs 👎, how many people did something, and the latest 10 decks. After 5 wrong PINs, it locks for an hour.
+
 ## Try it
 
 38. On the Worker's page, tap the **Visit** link. It ends in `.workers.dev`, for example `itabs-this-video.yourname.workers.dev`.
@@ -100,12 +109,28 @@ Old workers.dev links keep working.
 
 ---
 
+## Features
+
+| Feature | How it works |
+|---|---|
+| Link previews | Deck links show the video thumbnail, the title and "Personalised for …" when shared. The main page has its own preview image (`src/og.png`). |
+| For me / For someone else | A toggle above the description. "For someone else" turns the deck into a gift: buttons read "For Kristian". |
+| Share button | On every deck. It opens the phone's share menu, and copies the link if there isn't one. |
+| Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
+| Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
+| Make your own | A link in every deck footer, back to the main page. |
+| Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
+
+The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.
+
 ## For developers
 
 | What | Details |
 |---|---|
 | `src/worker.js` | All server logic: `/` is the form, `POST /api/make` builds a deck, `/d/<id>` shows one |
 | `src/page.html` | The form page |
+| `src/skill.md` | The downloadable skill, served at `/skill.md` |
+| `src/og.png` | Link-preview image for the main page |
 | `src/template.html` | The iTabs deck template, used unchanged. Only the DATA block between the markers is replaced. |
 | `dist/worker.js` | Single-file build, for pasting straight into the dashboard editor. Rebuild with `npm run bundle`. |
 | `npm test` | Rebuilds `dist/` and runs the offline tests, which use a simulated Gemini |
@@ -138,4 +163,4 @@ If the answer fails, Gemini retries once with the list of problems. Title and ch
 | Description | 300 characters |
 | Pasted transcript | 60,000 characters |
 
-IPs are only stored as a hash, for 2 hours.
+IPs are only stored as a hash, for 2 hours. Feedback is capped at 20 answers an hour per visitor.

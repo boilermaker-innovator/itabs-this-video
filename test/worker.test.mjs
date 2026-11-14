@@ -5,7 +5,8 @@ import worker, { validateDeck, parseVideoId, renderDeck } from "../dist/worker.j
 
 function memKV() {
   const m = new Map();
-  return { m, async get(k) { return m.has(k) ? m.get(k).v : null; }, async put(k, v, o = {}) { m.set(k, { v, o }); } };
+  return { m, async get(k) { return m.has(k) ? m.get(k).v : null; }, async put(k, v, o = {}) { m.set(k, { v, o }); },
+    async list({ prefix = "" } = {}) { return { keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name, metadata: m.get(name).o.metadata })), list_complete: true }; } };
 }
 const card = (i, extra = {}) => ({
   band: `Point ${i}`, colors: "#1e3a8a,#38bdf8", time: `${i}:05`, seconds: i * 60 + 5,
@@ -137,4 +138,80 @@ test("unknown deck and unknown page show friendly pages", async () => {
   assert.equal(r.status, 404); assert.match(await r.text(), /Deck not found/);
   const r2 = await worker.fetch(new Request("https://x.dev/"), env());
   assert.match(await r2.text(), /Make my iTabs/);
+});
+
+const get = (e, path, init) => worker.fetch(new Request("https://x.dev" + path, init), e);
+
+test("deck page has link preview tags, Share, feedback and Make your own", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { path } = await (await post(e, base)).json();
+  const html = await (await get(e, path)).text();
+  assert.match(html, /<meta property="og:title" content="Real Title">/);
+  assert.match(html, /<meta property="og:description" content="Personalised for a coffee van owner in Perth · Any YouTube video, applied to you">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/img\.youtube\.com\/vi\/dQw4w9WgXcQ\/hqdefault\.jpg">/);
+  assert.match(html, /name="twitter:card" content="summary_large_image"/);
+  assert.match(html, new RegExp(`og:url" content="https://x.dev${path}"`));
+  assert.ok(html.includes("navigator.share") && html.includes("Was this useful?") && html.includes("Make your own"));
+  assert.ok(html.trimEnd().endsWith("</body></html>"));
+});
+
+test("preview tags escape quotes in titles", async () => {
+  const e = env(); geminiQueue.push({ ...goodDeck(), videoTitle: 'He said "hi" <b>' });
+  ytStatus = 500;
+  const { path } = await (await post(e, base)).json();
+  const html = await (await get(e, path)).text();
+  assert.ok(html.includes('content="He said &quot;hi&quot; &lt;b&gt;"'));
+});
+
+test("home page has preview tags, mode toggle and the skill", async () => {
+  const html = await (await get(env(), "/")).text();
+  assert.match(html, /og:image" content="https:\/\/x\.dev\/og\.png"/);
+  assert.ok(html.includes("For someone else") && html.includes("Download skill") && html.includes("Copy skill"));
+  assert.ok(!html.includes("/*SKILL*/null") && !html.includes("<!--PREVIEW-->"));
+  assert.equal(html.split("</script>").length, 2, "skill text can't break the page script");
+  const png = await get(env(), "/og.png");
+  assert.equal(png.headers.get("content-type"), "image/png");
+  assert.ok((await png.arrayBuffer()).byteLength > 10000);
+});
+
+test("skill downloads as markdown with the right filename", async () => {
+  const r = await get(env(), "/skill.md");
+  assert.equal(r.headers.get("content-type"), "text/markdown; charset=utf-8");
+  assert.match(r.headers.get("content-disposition"), /filename="itabs-this-video-skill\.md"/);
+  assert.match(await r.text(), /^---\nname: itabs-this-video/);
+});
+
+test("'for someone else' mode changes the prompt", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  await post(e, { ...base, about: "my mate Kristian, building a robot arm", mode: "other" });
+  const p = JSON.parse(calls.find((c) => c.url.includes(":generateContent")).body).contents[0].parts.at(-1).text;
+  assert.match(p, /This deck is a gift/); assert.match(p, /For <Name>/); assert.match(p, /Kristian, building a robot arm/);
+});
+
+test("feedback is saved per deck and in totals, bad input rejected", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { id } = await (await post(e, base)).json();
+  const fb = (b) => worker.fetch(new Request("https://x.dev/api/feedback", { method: "POST", headers: { "CF-Connecting-IP": "7.7.7.7" }, body: JSON.stringify(b) }), e);
+  assert.equal((await fb({ id, q: "useful", a: "up" })).status, 200);
+  assert.equal((await fb({ id, q: "did", a: "yes" })).status, 200);
+  assert.equal((await fb({ id, q: "useful", a: "maybe" })).status, 400);
+  assert.equal((await fb({ id: "nope1234", q: "useful", a: "up" })).status, 404);
+  assert.deepEqual(JSON.parse(await e.DECKS.get("fb:" + id)), { up: 1, yes: 1 });
+  assert.deepEqual(JSON.parse(await e.DECKS.get("stats:fb")), { up: 1, yes: 1 });
+});
+
+test("stats page needs the PIN and shows the numbers", async () => {
+  const e = { ...env(), STATS_PIN: "4321" }; geminiQueue.push(goodDeck());
+  const { id } = await (await post(e, base)).json();
+  await e.DECKS.put("stats:fb", JSON.stringify({ up: 3, down: 1, yes: 2 }));
+  const form = (pin) => ({ method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "CF-Connecting-IP": "8.8.8.8" }, body: "pin=" + pin });
+  assert.match(await (await get(e, "/stats")).text(), /type="password"/);
+  const bad = await get(e, "/stats", form("0000")); assert.equal(bad.status, 401);
+  const ok = await (await get(e, "/stats", form("4321"))).text();
+  assert.match(ok, /<b>1<\/b><span>Decks today/); assert.match(ok, /<b>1<\/b><span>Decks total/);
+  assert.match(ok, /<b>3<\/b><span>👍/); assert.match(ok, /<b>1<\/b><span>👎/); assert.match(ok, /<b>2<\/b><span>Did something/);
+  assert.ok(ok.includes(`/d/${id}`));
+  for (let i = 0; i < 5; i++) await get(e, "/stats", form("1111"));
+  assert.equal((await get(e, "/stats", form("4321"))).status, 429, "locks out after 5 wrong tries");
+  assert.equal((await get(env(), "/stats")).status, 503, "off when no STATS_PIN");
 });

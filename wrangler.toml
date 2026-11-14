@@ -4,8 +4,11 @@ main = "src/worker.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
-# Lets the worker import the .html files as text
-rules = [{ type = "Text", globs = ["**/*.html"], fallthrough = true }]
+# Lets the worker import the .html/.md files as text and the .png as data
+rules = [
+  { type = "Text", globs = ["**/*.html", "**/*.md"], fallthrough = true },
+  { type = "Data", globs = ["**/*.png"], fallthrough = true },
+]
 
 # Where finished decks are stored (Cloudflare KV).
 # Replace PASTE-KV-ID-HERE with the ID of your KV namespace
