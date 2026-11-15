@@ -32,7 +32,7 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"S
 .cards{flex:0 1 auto;position:relative;overflow:hidden;min-height:0;display:grid;align-items:start}
 .card{grid-area:1/1;display:flex;flex-direction:column;opacity:0;transform:translateX(100%);transition:.3s;pointer-events:none}
 .card.on{opacity:1;transform:none;pointer-events:auto}.card.prev{transform:translateX(-100%)}
-.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden;max-height:calc(100vh - 230px)}
+.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden;max-height:calc(100vh - 230px - var(--ph,0px))}
 .band{height:42px;display:flex;align-items:center;padding:0 14px;position:relative;flex-shrink:0}
 .band b{font-size:15px;line-height:1.1;color:#fff;max-width:72%;text-shadow:0 2px 10px #0006}
 .ts{position:absolute;top:50%;transform:translateY(-50%);right:12px;background:#000a;color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;text-decoration:none}
@@ -58,13 +58,18 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
-.pv{position:relative;width:100%;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;color:var(--muted);font-size:14px}
+.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden}
+.dh{display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;font-size:13px}
+.dt{border:0;background:none;color:var(--fg);font:600 13px inherit;font-family:inherit;padding:0;cursor:pointer;white-space:nowrap;margin-right:auto}
+.dh a{color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}
+.db{width:30px;height:30px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
+.pv{position:relative;width:100%;max-width:calc(30vh * 16 / 9);margin:0 auto;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.dock.min .pv{height:0;aspect-ratio:auto;overflow:hidden}
+.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center;color:var(--muted);font-size:14px}
 .yt{background:#e11d1d;color:#fff;padding:8px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
-.ov .mh{padding:10px 12px 10px 16px;font-weight:600;font-size:14px}.ov .mh a{color:var(--muted);font-size:12.5px;font-weight:500;text-decoration:none;margin-left:auto}
-.ov .modal{padding-bottom:env(safe-area-inset-bottom,0px)}
 </style></head><body>
 <div class="wrap">
+ <div class="dock" id="dock" hidden><div class="dh"><button class="dt" id="pt" aria-label="Minimise or expand video">\u25B6 Video</button><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="db" id="pm" aria-label="Minimise video">\u25BE</button><button class="db" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div>
  <div class="prog" id="prog"></div>
  <div class="head"><div class="ch" id="ch"></div><div class="vt" id="vt"></div><div class="for" id="for"></div></div>
  <div class="key"><span><i style="background:var(--gold)"></i>From the video</span><span><i style="background:var(--bluedot)"></i>For you</span></div>
@@ -72,7 +77,6 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
  <div class="foot"><a class="watch" id="watch" target="_blank" rel="noopener">\u25B6 Watch video</a><div class="arr"><button id="bp" aria-label="Back">\u2039</button><button id="bn" aria-label="Next">\u203A</button></div></div>
  <div class="tag">Any YouTube video, applied to you. <small>\xB7 Made with <b>iTabs</b> \xB7 itabs.co</small></div>
 </div>
-<div class="ov" id="ov" aria-hidden="true"><div class="modal" role="dialog" aria-label="Video"><div class="mh"><span id="pt">\u25B6 Video</span><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="mx" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div></div>
 <script>
 /* ===== ONLY EDIT THIS DATA BLOCK ===== */
 const DATA = {
@@ -114,22 +118,29 @@ $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)re
  b.classList.add('act');box.className='info'+(x.you?' you':'');box.innerHTML='<span class="it"></span>';box.firstChild.textContent=x.you?DATA.youLabel:(x.type||'From the video');box.appendChild(document.createTextNode(x.text));box.hidden=false;box.scrollIntoView({block:'nearest',behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
 let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
-/* In-deck video player: bottom sheet, youtube-nocookie embed, falls back to a YouTube link */
-const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-let pfr=null;
+/* Docked mini player: youtube-nocookie embed above the deck; the deck stays usable. */
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+let pfr=null,pst=0;
+const fit=()=>document.documentElement.style.setProperty('--ph',$('dock').hidden?'0px':($('dock').offsetHeight+8)+'px');
+const label=(s,live)=>{$('pt').textContent=($('dock').classList.contains('min')?'\u25B4 ':'\u25B6 ')+(live||s?fmt(s):'From the start')};
 function fail(s){$('pv').innerHTML='<div class="pf">This video can\\'t play here.<a class="yt" target="_blank" rel="noopener">\u25B6 Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
-function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));
- $('pt').textContent='\u25B6 '+(s?fmt(s):'From the start');$('po').href=short(s);$('ov').classList.add('on');$('ov').setAttribute('aria-hidden','false');
- if(location.protocol==='file:')return fail(s);
+function cmd(func,args){try{pfr.contentWindow.postMessage(JSON.stringify({event:'command',func,args:args||[]}),'*')}catch(e){}}
+function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));pst=s;
+ const d=$('dock');d.hidden=false;d.classList.remove('min');$('pm').textContent='\u25BE';$('pm').setAttribute('aria-label','Minimise video');
+ $('po').href=short(s);label(s);
+ if(pfr){cmd('seekTo',[s,true]);cmd('playVideo');fit();return}
+ if(location.protocol==='file:'){fail(s);fit();return}
  const f=document.createElement('iframe');f.title='YouTube video';f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
  f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(DATA.videoId)+'?start='+s+'&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin='+encodeURIComponent(location.origin);
  f.onload=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}};
- $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;f.dataset.s=s}
-function stop(){$('ov').classList.remove('on');$('ov').setAttribute('aria-hidden','true');$('pv').innerHTML='';pfr=null}
+ $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;fit()}
+function toggleMin(){const d=$('dock');if(d.hidden)return;const m=d.classList.toggle('min');$('pm').textContent=m?'\u25B4':'\u25BE';$('pm').setAttribute('aria-label',m?'Expand video':'Minimise video');label(pst);fit()}
+function stop(){$('dock').hidden=true;$('dock').classList.remove('min');$('pv').innerHTML='';pfr=null;fit()}
 window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)return;let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch(x){return}
- if(d&&d.event==='onError')fail(+pfr.dataset.s)});
-$('px').onclick=stop;$('ov').addEventListener('click',e=>{if(e.target===$('ov'))stop()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+ if(!d)return;if(d.event==='onError')fail(pst);
+ if(d.event==='infoDelivery'&&d.info&&typeof d.info.currentTime==='number'){pst=Math.round(d.info.currentTime);label(pst,true);$('po').href=short(pst)}});
+$('px').onclick=stop;$('pm').onclick=toggleMin;$('pt').onclick=toggleMin;
+window.addEventListener('resize',fit);
 $('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
 $('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);
@@ -198,7 +209,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .ex{margin-top:26px}
 .exh{display:flex;justify-content:space-between;align-items:baseline}.exh h3{font-size:15px}.exh a{font-size:13px;color:var(--bluedot);text-decoration:none;font-weight:600}
 .key2{font-size:12.5px;color:var(--muted);margin:2px 0 8px}.key2 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}.key2 .g{background:var(--gold)}.key2 .b{background:var(--bluedot);margin-left:2px}
-.ex iframe{display:block;width:100%;height:540px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
+.ex iframe{display:block;width:100%;height:600px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="wrap">
@@ -384,7 +395,7 @@ body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"S
 .cards{flex:0 1 auto;position:relative;overflow:hidden;min-height:0;display:grid;align-items:start}
 .card{grid-area:1/1;display:flex;flex-direction:column;opacity:0;transform:translateX(100%);transition:.3s;pointer-events:none}
 .card.on{opacity:1;transform:none;pointer-events:auto}.card.prev{transform:translateX(-100%)}
-.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden;max-height:calc(100vh - 230px)}
+.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden;max-height:calc(100vh - 230px - var(--ph,0px))}
 .band{height:42px;display:flex;align-items:center;padding:0 14px;position:relative;flex-shrink:0}
 .band b{font-size:15px;line-height:1.1;color:#fff;max-width:72%;text-shadow:0 2px 10px #0006}
 .ts{position:absolute;top:50%;transform:translateY(-50%);right:12px;background:#000a;color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;text-decoration:none}
@@ -410,13 +421,18 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
-.pv{position:relative;width:100%;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;color:var(--muted);font-size:14px}
+.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden}
+.dh{display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;font-size:13px}
+.dt{border:0;background:none;color:var(--fg);font:600 13px inherit;font-family:inherit;padding:0;cursor:pointer;white-space:nowrap;margin-right:auto}
+.dh a{color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}
+.db{width:30px;height:30px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
+.pv{position:relative;width:100%;max-width:calc(30vh * 16 / 9);margin:0 auto;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.dock.min .pv{height:0;aspect-ratio:auto;overflow:hidden}
+.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center;color:var(--muted);font-size:14px}
 .yt{background:#e11d1d;color:#fff;padding:8px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
-.ov .mh{padding:10px 12px 10px 16px;font-weight:600;font-size:14px}.ov .mh a{color:var(--muted);font-size:12.5px;font-weight:500;text-decoration:none;margin-left:auto}
-.ov .modal{padding-bottom:env(safe-area-inset-bottom,0px)}
 </style></head><body>
 <div class="wrap">
+ <div class="dock" id="dock" hidden><div class="dh"><button class="dt" id="pt" aria-label="Minimise or expand video">\u25B6 Video</button><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="db" id="pm" aria-label="Minimise video">\u25BE</button><button class="db" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div>
  <div class="prog" id="prog"></div>
  <div class="head"><div class="ch" id="ch"></div><div class="vt" id="vt"></div><div class="for" id="for"></div></div>
  <div class="key"><span><i style="background:var(--gold)"></i>From the video</span><span><i style="background:var(--bluedot)"></i>For you</span></div>
@@ -424,7 +440,6 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
  <div class="foot"><a class="watch" id="watch" target="_blank" rel="noopener">\u25B6 Watch video</a><div class="arr"><button id="bp" aria-label="Back">\u2039</button><button id="bn" aria-label="Next">\u203A</button></div></div>
  <div class="tag">Any YouTube video, applied to you. <small>\xB7 Made with <b>iTabs</b> \xB7 itabs.co</small></div>
 </div>
-<div class="ov" id="ov" aria-hidden="true"><div class="modal" role="dialog" aria-label="Video"><div class="mh"><span id="pt">\u25B6 Video</span><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="mx" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div></div>
 <script>
 /* ===== ONLY EDIT THIS DATA BLOCK ===== */
 const DATA = {
@@ -466,22 +481,29 @@ $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)re
  b.classList.add('act');box.className='info'+(x.you?' you':'');box.innerHTML='<span class="it"></span>';box.firstChild.textContent=x.you?DATA.youLabel:(x.type||'From the video');box.appendChild(document.createTextNode(x.text));box.hidden=false;box.scrollIntoView({block:'nearest',behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
 let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
-/* In-deck video player: bottom sheet, youtube-nocookie embed, falls back to a YouTube link */
-const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-let pfr=null;
+/* Docked mini player: youtube-nocookie embed above the deck; the deck stays usable. */
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+let pfr=null,pst=0;
+const fit=()=>document.documentElement.style.setProperty('--ph',$('dock').hidden?'0px':($('dock').offsetHeight+8)+'px');
+const label=(s,live)=>{$('pt').textContent=($('dock').classList.contains('min')?'\u25B4 ':'\u25B6 ')+(live||s?fmt(s):'From the start')};
 function fail(s){$('pv').innerHTML='<div class="pf">This video can\\'t play here.<a class="yt" target="_blank" rel="noopener">\u25B6 Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
-function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));
- $('pt').textContent='\u25B6 '+(s?fmt(s):'From the start');$('po').href=short(s);$('ov').classList.add('on');$('ov').setAttribute('aria-hidden','false');
- if(location.protocol==='file:')return fail(s);
+function cmd(func,args){try{pfr.contentWindow.postMessage(JSON.stringify({event:'command',func,args:args||[]}),'*')}catch(e){}}
+function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));pst=s;
+ const d=$('dock');d.hidden=false;d.classList.remove('min');$('pm').textContent='\u25BE';$('pm').setAttribute('aria-label','Minimise video');
+ $('po').href=short(s);label(s);
+ if(pfr){cmd('seekTo',[s,true]);cmd('playVideo');fit();return}
+ if(location.protocol==='file:'){fail(s);fit();return}
  const f=document.createElement('iframe');f.title='YouTube video';f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
  f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(DATA.videoId)+'?start='+s+'&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin='+encodeURIComponent(location.origin);
  f.onload=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}};
- $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;f.dataset.s=s}
-function stop(){$('ov').classList.remove('on');$('ov').setAttribute('aria-hidden','true');$('pv').innerHTML='';pfr=null}
+ $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;fit()}
+function toggleMin(){const d=$('dock');if(d.hidden)return;const m=d.classList.toggle('min');$('pm').textContent=m?'\u25B4':'\u25BE';$('pm').setAttribute('aria-label',m?'Expand video':'Minimise video');label(pst);fit()}
+function stop(){$('dock').hidden=true;$('dock').classList.remove('min');$('pv').innerHTML='';pfr=null;fit()}
 window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)return;let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch(x){return}
- if(d&&d.event==='onError')fail(+pfr.dataset.s)});
-$('px').onclick=stop;$('ov').addEventListener('click',e=>{if(e.target===$('ov'))stop()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+ if(!d)return;if(d.event==='onError')fail(pst);
+ if(d.event==='infoDelivery'&&d.info&&typeof d.info.currentTime==='number'){pst=Math.round(d.info.currentTime);label(pst,true);$('po').href=short(pst)}});
+$('px').onclick=stop;$('pm').onclick=toggleMin;$('pt').onclick=toggleMin;
+window.addEventListener('resize',fit);
 $('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
 $('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);

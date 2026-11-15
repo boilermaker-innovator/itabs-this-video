@@ -281,7 +281,7 @@ test("main page: quick-pick chips fill the box and progress messages rotate", as
   for (const m of ["Pulling the transcript…", "Finding the key moments…", "Making your gold cards…", "Tailoring blue cards for you…"]) assert.ok(seen.has(m), m);
 });
 
-test("in-deck player: badge opens at that second, switches, closes, Watch video, fallback; no tap zones", async (t) => {
+test("docked mini player: deck stays usable, seeks in place, minimise, close, fallback", async (t) => {
   const { createRequire } = await import("node:module");
   let pw;
   try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
@@ -289,53 +289,76 @@ test("in-deck player: badge opens at that second, switches, closes, Watch video,
   const d = validateDeck(goodDeck()).data; d.videoId = "dQw4w9WgXcQ";
   const page = decorateDeck(renderDeck(d), d, "abcd1234", "https://x.dev", false);
   const b = await pw.chromium.launch();
+  t.after(() => b.close());
   const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
-  let blockEmbed = false;
   await p.route("https://x.dev/d/abcd1234", (r) => r.fulfill({ contentType: "text/html", body: page }));
+  // Stub player: records the commands it receives so we can check seeking.
   await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body:
-    `<body style="background:#000;color:#fff">stub player<script>addEventListener("message",e=>{if(${"BLOCK"})parent.postMessage(JSON.stringify({event:"onError",info:150}),"*")})</script>`
-      .replace("BLOCK", String(blockEmbed)) }));
+    `<body style="background:#000"><script>window.cmds=[];addEventListener("message",e=>{try{const m=JSON.parse(e.data);if(m.event==="command")cmds.push(m.func+":"+(m.args||[]).join(","))}catch(x){}})</script>` }));
   await p.goto("https://x.dev/d/abcd1234");
-  const src = () => p.$eval("#pv iframe", (f) => f.src).catch(() => null);
+  const frames = () => p.locator("#pv iframe").count();
+  const src = () => p.locator("#pv iframe").getAttribute("src");
+  const cmds = async (want) => { const f = p.frames().find((x) => x.url().includes("nocookie"));
+    for (let i = 0; i < 20; i++) { const c = await f.evaluate(() => window.cmds); if (c.length >= want) return c; await p.waitForTimeout(100); }
+    return f.evaluate(() => window.cmds); };
+  const tappable = (sel) => p.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return !!document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2).closest(s); }, sel);
 
-  assert.equal(await p.$$eval(".nav", (n) => n.length), 0, "no invisible tap zones");
-  const box = await p.locator(".card.on a.ts").boundingBox();
-  assert.equal(await p.evaluate(([x, y]) => document.elementFromPoint(x, y).closest("a.ts") !== null, [box.x + box.width / 2, box.y + box.height / 2]), true, "badge is tappable");
-  const ib = await p.locator(".card.on .ib").last().boundingBox();
-  assert.equal(await p.evaluate(([x, y]) => !!document.elementFromPoint(x, y).closest(".ib"), [ib.x + ib.width / 2, ib.y + ib.height / 2]), true, "i-button is tappable");
-
-  await p.locator(".card.on a.ts").tap();                         // card 1 = 1:05 → 65s
-  assert.ok(await p.isVisible("#ov.on"));
+  assert.equal(await p.locator(".nav, .ov.on").count(), 0, "no tap zones, no overlay");
+  await p.locator(".card.on a.ts").tap();                                   // 1:05
   assert.equal(await src(), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=65&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fx.dev");
   assert.equal(await p.textContent("#pt"), "▶ 1:05");
-  assert.equal(p.url(), "https://x.dev/d/abcd1234", "stayed in the deck");
-  await p.tap("#px");
-  assert.equal(await p.isVisible("#ov.on"), false); assert.equal(await src(), null, "closing removes the player (stops video)");
+  const dock = await p.locator("#dock").boundingBox(), card = await p.locator(".card.on .in").boundingBox();
+  assert.ok(dock.y < 20 && dock.height > 150, "docked at top: " + JSON.stringify(dock));
+  assert.ok(card.y >= dock.y + dock.height, "deck shifted below the player");
+  const foot = await p.locator("#bn").boundingBox();
+  assert.ok(foot.y + foot.height <= p.viewportSize().height, "arrows still on screen");
 
+  // While playing: arrows, swipe, i-buttons and Share all work; the player stays
   await p.tap("#bn"); await p.waitForTimeout(350);
-  await p.locator(".card.on a.ts").tap();                         // card 2 = 2:05 → 125s
-  assert.match(await src(), /start=125&/);
-  await p.tap("#px");
-  await p.tap("#watch");
-  assert.match(await src(), /\/embed\/dQw4w9WgXcQ\?start=0&autoplay=1&playsinline=1&rel=0/);
-  assert.equal(await p.textContent("#pt"), "▶ From the start");
-  await p.tap("#px");
-
-  // swipe still works
-  await p.evaluate(() => { const c = document.getElementById("cards"), tt = (x) => [new Touch({ identifier: 1, target: c, clientX: x, clientY: 300 })];
+  assert.equal(await p.textContent(".card.on .num"), "Point 2 of 7");
+  await p.evaluate(() => { const c = document.getElementById("cards"), tt = (x) => [new Touch({ identifier: 1, target: c, clientX: x, clientY: 400 })];
     c.dispatchEvent(new TouchEvent("touchstart", { touches: tt(300), changedTouches: tt(300) })); c.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: tt(100) })); });
   await p.waitForTimeout(350);
-  assert.equal(await p.textContent(".card.on .num"), "Point 3 of 7");
+  assert.equal(await p.textContent(".card.on .num"), "Point 3 of 7", "swipe works with player open");
+  await p.locator(".card.on .ib.you").tap();
+  assert.ok(await p.locator(".card.on .info.you").isVisible(), "blue i-button opens with player open");
+  await p.locator(".card.on .ib").last().tap();
+  assert.match(await p.textContent(".card.on .info"), /Background/);
+  assert.equal(await tappable(".share"), true, "Share is tappable");
+  assert.equal(await frames(), 1, "player still there");
 
-  // embedding disabled → friendly fallback link to youtu.be at that second
-  blockEmbed = true;
+  // Another timestamp seeks the same player (no reload)
+  const before = await src();
+  await p.locator(".card.on a.ts").tap();                                   // 3:05 → 185
+  assert.equal(await frames(), 1); assert.equal(await src(), before, "same iframe, not reopened");
+  assert.deepEqual((await cmds(2)).slice(-2), ["seekTo:185,true", "playVideo:"]);
+  assert.equal(await p.textContent("#pt"), "▶ 3:05");
+  assert.equal(await p.getAttribute("#po", "href"), "https://youtu.be/dQw4w9WgXcQ?t=185");
+
+  // Minimise to a slim bar (keeps playing), then expand
+  await p.tap("#pm");
+  const slim = await p.locator("#dock").boundingBox();
+  assert.ok(slim.height < 50, "slim bar: " + slim.height);
+  assert.equal(await frames(), 1, "still playing while minimised");
+  assert.ok((await p.locator(".card.on .in").boundingBox()).y < card.y, "deck moves back up");
+  await p.tap("#pt");
+  assert.ok((await p.locator("#dock").boundingBox()).height > 150, "expanded again");
+
+  // Watch video seeks to the start
+  await p.tap("#watch");
+  assert.deepEqual((await cmds(4)).slice(-2), ["seekTo:0,true", "playVideo:"]);
+
+  // Close stops it
+  await p.tap("#px");
+  assert.equal(await p.isVisible("#dock"), false); assert.equal(await frames(), 0);
+
+  // Embedding blocked → fallback button
   await p.unroute("https://www.youtube-nocookie.com/**");
   await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body:
     `<script>addEventListener("message",()=>parent.postMessage(JSON.stringify({event:"onError",info:150}),"*"))</script>` }));
-  await p.locator(".card.on a.ts").tap();                         // 3:05 → 185s
+  await p.locator(".card.on a.ts").tap();
   await p.waitForSelector("#pv .pf");
-  assert.equal(await p.$eval("#pv .pf a", (a) => a.href), "https://youtu.be/dQw4w9WgXcQ?t=185");
-  assert.equal(await p.$eval("#pv .pf a", (a) => a.target), "_blank");
+  assert.equal(await p.locator("#pv .pf a").getAttribute("href"), "https://youtu.be/dQw4w9WgXcQ?t=185");
   await b.close();
 });
 
