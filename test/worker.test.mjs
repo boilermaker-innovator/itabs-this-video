@@ -240,3 +240,23 @@ test("served skill is the official file, byte for byte", async () => {
   assert.equal(t, readFileSync(new URL("../src/skill.md", import.meta.url), "utf8"));
   assert.ok(t.indexOf("**Easiest:** use this skill in Gemini") > t.indexOf("## Step 1: Get three things"));
 });
+
+test("timestamp links use youtu.be/<id>?t=<whole seconds>", async (t) => {
+  const { createRequire } = await import("node:module");
+  let chromium;
+  try { ({ chromium } = createRequire(import.meta.url)("playwright")); } catch { return t.skip("playwright not installed"); }
+  const { decorateDeck } = await import("../dist/worker.js");
+  const d = validateDeck(goodDeck()).data;
+  d.videoId = "dQw4w9WgXcQ"; d.cards[0].seconds = 75.6; d.cards[1].seconds = 125;
+  const b = await chromium.launch();
+  for (const embed of [false, true]) {
+    const p = await b.newPage();
+    await p.setContent(decorateDeck(renderDeck(d), d, "abcd1234", "https://x.dev", embed));
+    const hrefs = await p.$$eval("a.ts", (as) => as.map((a) => a.getAttribute("href")));
+    assert.equal(hrefs.length, 7);
+    assert.equal(hrefs[0], "https://youtu.be/dQw4w9WgXcQ?t=76");
+    assert.equal(hrefs[1], "https://youtu.be/dQw4w9WgXcQ?t=125");
+    assert.ok(hrefs.every((h) => /^https:\/\/youtu\.be\/dQw4w9WgXcQ\?t=\d+$/.test(h)), hrefs.join(" "));
+  }
+  await b.close();
+});
