@@ -128,7 +128,7 @@ Old workers.dev links keep working.
 | Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
 | Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
 | Make your own | A link in every deck footer, back to the main page. |
-| Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a mini player docked at the top, at that second. The deck stays fully usable underneath. Another timestamp seeks the same player. ▾ shrinks it to a slim bar that keeps playing, ✕ closes it and stops it, and "Open in YouTube ↗" is always there. If the creator blocks embedding, an **Open in YouTube** button shows instead. The skill uses the same template. |
+| Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a player pinned at the top, at that second, and the deck stays fully usable. Two sizes: **Big**, and **🎧 Listen**, a slim strip with a small visible video, the time, play/pause, ⤢ expand and ✕. The size you pick is remembered, and other timestamps seek the same player without changing it. If the creator blocks embedding, an **Open in YouTube** button shows instead. The skill uses the same template. |
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
 

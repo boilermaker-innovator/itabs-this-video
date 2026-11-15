@@ -281,7 +281,7 @@ test("main page: quick-pick chips fill the box and progress messages rotate", as
   for (const m of ["Pulling the transcript…", "Finding the key moments…", "Making your gold cards…", "Tailoring blue cards for you…"]) assert.ok(seen.has(m), m);
 });
 
-test("docked mini player: deck stays usable, seeks in place, minimise, close, fallback", async (t) => {
+test("docked mini player: deck stays usable, seeks in place, Listen size, close, fallback", async (t) => {
   const { createRequire } = await import("node:module");
   let pw;
   try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
@@ -335,13 +335,13 @@ test("docked mini player: deck stays usable, seeks in place, minimise, close, fa
   assert.equal(await p.textContent("#pt"), "▶ 3:05");
   assert.equal(await p.getAttribute("#po", "href"), "https://youtu.be/dQw4w9WgXcQ?t=185");
 
-  // Minimise to a slim bar (keeps playing), then expand
-  await p.tap("#pm");
+  // Listen size: slim strip, same player keeps running; expand back to Big
+  await p.tap("#pl");
   const slim = await p.locator("#dock").boundingBox();
-  assert.ok(slim.height < 50, "slim bar: " + slim.height);
-  assert.equal(await frames(), 1, "still playing while minimised");
+  assert.ok(slim.height >= 60 && slim.height <= 76, "listen strip height: " + slim.height);
+  assert.equal(await frames(), 1, "same player while in Listen");
   assert.ok((await p.locator(".card.on .in").boundingBox()).y < card.y, "deck moves back up");
-  await p.tap("#pt");
+  await p.tap("#pe");
   assert.ok((await p.locator("#dock").boundingBox()).height > 150, "expanded again");
 
   // Watch video seeks to the start
@@ -434,4 +434,77 @@ test("iPhone: long card with player open — scroll down, open i-buttons; vertic
   const top = (await p.locator(".card.on .in").boundingBox()).y;
   const dk = await p.locator("#dock").boundingBox();
   assert.ok(top >= dk.y + dk.height && top < vh / 2, "new card starts just below the player: " + top);
+});
+
+test("iPhone: Listen mode — slim strip with visible video, keeps playing across cards and i-buttons", async (t) => {
+  const { createRequire } = await import("node:module");
+  let pw;
+  try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
+  const { decorateDeck } = await import("../dist/worker.js");
+  const d = validateDeck(goodDeck()).data; d.videoId = "dQw4w9WgXcQ";
+  const page = decorateDeck(renderDeck(d), d, "abcd1234", "https://x.dev", false);
+  const b = await pw.chromium.launch();
+  t.after(() => b.close());
+  const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
+  await p.route("https://x.dev/d/abcd1234", (r) => r.fulfill({ contentType: "text/html", body: page }));
+  // Stub player: counts loads, records commands, reports time + state like YouTube does.
+  await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body: `<body style="background:#000"><script>
+    window.cmds=[];window.loads=(window.loads||0)+1;let state=1,time=65;
+    addEventListener("message",e=>{try{const m=JSON.parse(e.data);if(m.event==="command"){cmds.push(m.func+":"+(m.args||[]).join(","));
+      if(m.func==="pauseVideo")state=2;if(m.func==="playVideo")state=1;if(m.func==="seekTo")time=m.args[0];}}catch(x){}});
+    setInterval(()=>{if(state===1)time+=1;parent.postMessage(JSON.stringify({event:"infoDelivery",info:{currentTime:time,playerState:state}}),"*")},200);
+  </script>` }));
+  await p.goto("https://x.dev/d/abcd1234");
+  const player = () => p.frames().find((f) => f.url().includes("nocookie"));
+  const cmds = async (n) => { for (let i = 0; i < 20; i++) { const c = await player().evaluate(() => window.cmds); if (c.length >= n) return c; await p.waitForTimeout(100); } return player().evaluate(() => window.cmds); };
+  const swipe = () => p.evaluate(() => { const c = document.getElementById("cards"), at = (x) => [new Touch({ identifier: 1, target: c, clientX: x, clientY: 400 })];
+    c.dispatchEvent(new TouchEvent("touchstart", { touches: at(300), changedTouches: at(300) })); c.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: at(80) })); });
+
+  await p.locator(".card.on a.ts").tap();
+  assert.equal(await p.locator("#pm").count(), 0, "old minimise button is gone");
+  assert.ok(await p.locator("#pl").isVisible(), "🎧 button in Big mode");
+  await p.tap("#pl");
+
+  // Slim strip, ~64–72px, with the video still visible at ~110x62 (not hidden)
+  const dock = await p.locator("#dock").boundingBox();
+  assert.ok(dock.height >= 64 && dock.height <= 72, "strip height " + dock.height);
+  const vid = await p.locator("#pv iframe").boundingBox();
+  assert.ok(Math.abs(vid.width - 110) <= 1 && Math.abs(vid.height - 62) <= 1, "thumbnail size " + JSON.stringify(vid));
+  assert.ok(vid.y >= 0 && vid.y + vid.height <= p.viewportSize().height, "video on screen");
+  assert.equal(await p.locator("#pv iframe").evaluate((f) => getComputedStyle(f).visibility + "/" + getComputedStyle(f).display + "/" + getComputedStyle(f).opacity), "visible/block/1");
+  for (const id of ["#pt", "#pp", "#pe", "#px"]) assert.ok(await p.locator(id).isVisible(), id + " visible in Listen");
+  assert.equal(await p.locator("#po").isVisible(), false);
+  await p.waitForTimeout(600);
+  assert.match(await p.textContent("#pt"), /^🎧 1:\d\d$/, "current time shows and ticks");
+
+  // Swipe cards and open i-buttons: size stays Listen, same player keeps running
+  const t0 = await p.textContent("#pt");
+  await p.tap("#bn"); await p.waitForTimeout(350); await swipe(); await p.waitForTimeout(350);
+  assert.equal(await p.textContent(".card.on .num"), "Point 3 of 7");
+  await p.locator(".card.on .ib.you").tap(); assert.ok(await p.locator(".card.on .info.you").isVisible());
+  await p.locator(".card.on .ib").last().tap(); assert.match(await p.textContent(".card.on .info"), /Background/);
+  assert.ok(await p.locator("#dock.listen").isVisible(), "still Listen size");
+  assert.equal(await player().evaluate(() => window.loads), 1, "player never reloaded");
+  assert.notEqual(await p.textContent("#pt"), t0, "time kept moving (still playing)");
+
+  // Timestamp seeks without changing size
+  await p.locator(".card.on a.ts").tap();
+  assert.deepEqual((await cmds(2)).slice(-2), ["seekTo:185,true", "playVideo:"]);
+  assert.ok(await p.locator("#dock.listen").isVisible(), "seek keeps Listen size");
+
+  // Play / pause
+  await p.tap("#pp"); assert.deepEqual((await cmds(3)).slice(-1), ["pauseVideo:"]);
+  await p.waitForTimeout(500); assert.equal(await p.textContent("#pp"), "▶");
+  await p.tap("#pp"); assert.deepEqual((await cmds(4)).slice(-1), ["playVideo:"]);
+  await p.waitForTimeout(500); assert.equal(await p.textContent("#pp"), "⏸");
+
+  // Expand to Big and back, still the same player
+  await p.tap("#pe"); assert.ok((await p.locator("#dock").boundingBox()).height > 150);
+  await p.tap("#pl"); assert.ok((await p.locator("#dock").boundingBox()).height <= 72);
+  assert.equal(await player().evaluate(() => window.loads), 1);
+
+  // Size remembered: close, open another timestamp → opens in Listen
+  await p.tap("#px"); assert.equal(await p.locator("#pv iframe").count(), 0);
+  await p.locator(".card.on a.ts").tap();
+  assert.ok(await p.locator("#dock.listen").isVisible(), "reopens in remembered Listen size");
 });

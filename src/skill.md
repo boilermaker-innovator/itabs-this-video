@@ -99,18 +99,21 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
-.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden;position:sticky;top:0;z-index:10;box-shadow:0 0 0 12px var(--bg)}
+.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden;position:sticky;top:0;z-index:10;margin-bottom:4px;box-shadow:0 -12px 0 var(--bg),-12px 0 0 var(--bg),12px 0 0 var(--bg)}
 .dh{display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;font-size:13px}
-.dt{border:0;background:none;color:var(--fg);font:600 13px inherit;font-family:inherit;padding:0;cursor:pointer;white-space:nowrap;margin-right:auto}
+.dt{color:var(--fg);font-weight:600;font-size:13px;white-space:nowrap;margin-right:auto;font-variant-numeric:tabular-nums}
 .dh a{color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}
 .db{width:30px;height:30px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
 .pv{position:relative;width:100%;max-width:calc(30vh * 16 / 9);margin:0 auto;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.dock.min .pv{height:0;aspect-ratio:auto;overflow:hidden}
+.dock .ls{display:none}
+.dock.listen{display:flex;align-items:center;gap:8px;height:70px;padding:4px}
+.dock.listen .pv{order:-1;flex-shrink:0;width:110px;height:62px;max-width:none;margin:0;aspect-ratio:auto;border-radius:9px;overflow:hidden}
+.dock.listen .dh{flex:1;min-width:0;height:auto;padding:0}.dock.listen .bg{display:none}.dock.listen .ls{display:inline-block}
 .pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center;color:var(--muted);font-size:14px}
 .yt{background:#e11d1d;color:#fff;padding:8px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
 </style></head><body>
 <div class="wrap">
- <div class="dock" id="dock" hidden><div class="dh"><button class="dt" id="pt" aria-label="Minimise or expand video">▶ Video</button><a id="po" target="_blank" rel="noopener">Open in YouTube ↗</a><button class="db" id="pm" aria-label="Minimise video">▾</button><button class="db" id="px" aria-label="Close video">✕</button></div><div class="pv" id="pv"></div></div>
+ <div class="dock" id="dock" hidden><div class="dh"><span class="dt" id="pt">▶ Video</span><a class="bg" id="po" target="_blank" rel="noopener">Open in YouTube ↗</a><button class="db ls" id="pp" aria-label="Pause">⏸</button><button class="db bg" id="pl" aria-label="Listen mode (small player)">🎧</button><button class="db ls" id="pe" aria-label="Expand video">⤢</button><button class="db" id="px" aria-label="Close video">✕</button></div><div class="pv" id="pv"></div></div>
  <div class="prog" id="prog"></div>
  <div class="head"><div class="ch" id="ch"></div><div class="vt" id="vt"></div><div class="for" id="for"></div></div>
  <div class="key"><span><i style="background:var(--gold)"></i>From the video</span><span><i style="background:var(--bluedot)"></i>For you</span></div>
@@ -162,26 +165,29 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==
 let x0=0,y0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});$('cards').addEventListener('touchend',e=>{const t=e.changedTouches[0],d=x0-t.clientX,dy=y0-t.clientY;if(Math.abs(d)>50&&Math.abs(d)>Math.abs(dy)*1.5)go(d>0?1:-1)});
 /* Docked mini player: youtube-nocookie embed above the deck; the deck stays usable. */
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
-let pfr=null,pst=0;
+let pfr=null,pst=0,pmode='big',playing=true;
 const fit=()=>document.documentElement.style.setProperty('--ph',$('dock').hidden?'0px':($('dock').offsetHeight+20)+'px');
-const label=(s,live)=>{$('pt').textContent=($('dock').classList.contains('min')?'▴ ':'▶ ')+(live||s?fmt(s):'From the start')};
-function fail(s){$('pv').innerHTML='<div class="pf">This video can\'t play here.<a class="yt" target="_blank" rel="noopener">▶ Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
+const label=(s,live)=>{$('pt').textContent=($('dock').classList.contains('listen')?'🎧 ':'▶ ')+(live||s?fmt(s):'From the start')};
+const setPlaying=v=>{playing=v;$('pp').textContent=v?'⏸':'▶';$('pp').setAttribute('aria-label',v?'Pause':'Play')};
+function setMode(m){pmode=m;$('dock').classList.toggle('listen',m==='listen');label(pst);fit()}
+function fail(s){$('dock').classList.remove('listen');$('pv').innerHTML='<div class="pf">This video can\'t play here.<a class="yt" target="_blank" rel="noopener">▶ Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null;label(s);fit()}
 function cmd(func,args){try{pfr.contentWindow.postMessage(JSON.stringify({event:'command',func,args:args||[]}),'*')}catch(e){}}
 function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));pst=s;
- const d=$('dock');d.hidden=false;d.classList.remove('min');$('pm').textContent='▾';$('pm').setAttribute('aria-label','Minimise video');
- $('po').href=short(s);label(s);
+ const d=$('dock');d.hidden=false;setPlaying(true);
+ $('po').href=short(s);setMode(pmode);label(s);
  if(pfr){cmd('seekTo',[s,true]);cmd('playVideo');fit();return}
  if(location.protocol==='file:'){fail(s);fit();return}
  const f=document.createElement('iframe');f.title='YouTube video';f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
  f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(DATA.videoId)+'?start='+s+'&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin='+encodeURIComponent(location.origin);
  f.onload=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}};
  $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;fit()}
-function toggleMin(){const d=$('dock');if(d.hidden)return;const m=d.classList.toggle('min');$('pm').textContent=m?'▴':'▾';$('pm').setAttribute('aria-label',m?'Expand video':'Minimise video');label(pst);fit()}
-function stop(){$('dock').hidden=true;$('dock').classList.remove('min');$('pv').innerHTML='';pfr=null;fit()}
+function playPause(){if(!pfr)return;cmd(playing?'pauseVideo':'playVideo');setPlaying(!playing)}
+function stop(){$('dock').hidden=true;$('pv').innerHTML='';pfr=null;fit()}
 window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)return;let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch(x){return}
  if(!d)return;if(d.event==='onError')fail(pst);
- if(d.event==='infoDelivery'&&d.info&&typeof d.info.currentTime==='number'){pst=Math.round(d.info.currentTime);label(pst,true);$('po').href=short(pst)}});
-$('px').onclick=stop;$('pm').onclick=toggleMin;$('pt').onclick=toggleMin;
+ if(d.event==='infoDelivery'&&d.info){if(typeof d.info.currentTime==='number'){pst=Math.round(d.info.currentTime);label(pst,true);$('po').href=short(pst)}
+  if(d.info.playerState===1)setPlaying(true);else if(d.info.playerState===2||d.info.playerState===0)setPlaying(false)}});
+$('px').onclick=stop;$('pp').onclick=playPause;$('pl').onclick=()=>setMode('listen');$('pe').onclick=()=>setMode('big');
 window.addEventListener('resize',fit);
 $('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
 $('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
