@@ -48,7 +48,6 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .info .it{display:block;font-weight:700;font-size:13px;margin-bottom:4px;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
 .info.you .it{color:var(--bluedot)}
 .ib.act{outline:2px solid var(--fg);outline-offset:1px}
-.nav{position:absolute;top:0;bottom:0;width:22%;z-index:2}.nav.l{left:0}.nav.r{right:0}
 .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 4px}
 .watch{background:#e11d1d;color:#fff;padding:7px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
 .arr button{width:36px;height:36px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:18px;margin-left:6px}
@@ -59,15 +58,21 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
+.pv{position:relative;width:100%;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;color:var(--muted);font-size:14px}
+.yt{background:#e11d1d;color:#fff;padding:8px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
+.ov .mh{padding:10px 12px 10px 16px;font-weight:600;font-size:14px}.ov .mh a{color:var(--muted);font-size:12.5px;font-weight:500;text-decoration:none;margin-left:auto}
+.ov .modal{padding-bottom:env(safe-area-inset-bottom,0px)}
 </style></head><body>
 <div class="wrap">
  <div class="prog" id="prog"></div>
  <div class="head"><div class="ch" id="ch"></div><div class="vt" id="vt"></div><div class="for" id="for"></div></div>
  <div class="key"><span><i style="background:var(--gold)"></i>From the video</span><span><i style="background:var(--bluedot)"></i>For you</span></div>
- <div class="cards" id="cards"><div class="nav l" id="nl"></div><div class="nav r" id="nr"></div></div>
+ <div class="cards" id="cards"></div>
  <div class="foot"><a class="watch" id="watch" target="_blank" rel="noopener">\u25B6 Watch video</a><div class="arr"><button id="bp" aria-label="Back">\u2039</button><button id="bn" aria-label="Next">\u203A</button></div></div>
  <div class="tag">Any YouTube video, applied to you. <small>\xB7 Made with <b>iTabs</b> \xB7 itabs.co</small></div>
 </div>
+<div class="ov" id="ov" aria-hidden="true"><div class="modal" role="dialog" aria-label="Video"><div class="mh"><span id="pt">\u25B6 Video</span><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="mx" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div></div>
 <script>
 /* ===== ONLY EDIT THIS DATA BLOCK ===== */
 const DATA = {
@@ -91,21 +96,42 @@ const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({
 $('ch').textContent=DATA.channel;const sp=document.createElement('span');sp.textContent=' \xB7 '+DATA.videoTitle;$('ch').appendChild(sp);$('for').textContent=DATA.forWho?'Personalised for '+DATA.forWho:'';
 document.title='iTabs | '+DATA.videoTitle;
 const yt=DATA.videoId?'https://www.youtube.com/watch?v='+DATA.videoId:'';if(yt)$('watch').href=yt;else $('watch').hidden=true;
+const short=s=>'https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;
+const secs=c=>{let s=Number(c.seconds);if(!(s>0)&&c.time&&/^\\d+(:\\d{1,2}){1,2}$/.test(c.time))s=c.time.split(':').reduce((a,x)=>a*60+(+x),0);return Number.isFinite(s)&&s>=0?Math.round(s):null};
 let cur=0;const N=DATA.cards.length;
 DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='seg';$('prog').appendChild(s);
  const el=document.createElement('div');el.className='card';
- const t=c.time?(yt&&c.seconds?\`<a class="ts" target="_blank" rel="noopener" href="\${yt}&t=\${c.seconds}s">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
+ const sec=secs(c);
+ const t=c.time?(yt&&sec!=null?\`<a class="ts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
  el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,\${c.colors||'#1e3a8a,#38bdf8'})"><b>\${esc(c.band)}</b>\${t}</div><div class="body"><div class="num">Point \${i+1} of \${N}</div><h2>\${esc(c.headline)}</h2><p class="sum">\${esc(c.summary)}</p><div class="btns">\${(c.buttons||[]).map((b,j)=>\`<button class="ib\${b.you?' you':''}" data-i="\${i}" data-j="\${j}"><span>i</span>\${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>\`).join('')}</div><div class="info" hidden></div></div></div>\`;
- $('cards').insertBefore(el,$('nl'));});
+ $('cards').appendChild(el);});
 function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i}
 const go=d=>{const n=cur+d;if(n>=0&&n<N)show(n)};
-$('nl').onclick=()=>go(-1);$('nr').onclick=()=>go(1);$('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
+$('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
 $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)return;const card=b.closest('.card'),box=card.querySelector('.info'),x=DATA.cards[b.dataset.i].buttons[b.dataset.j];
  const was=b.classList.contains('act');card.querySelectorAll('.ib').forEach(z=>z.classList.remove('act'));
  if(was){box.hidden=true;return}
  b.classList.add('act');box.className='info'+(x.you?' you':'');box.innerHTML='<span class="it"></span>';box.firstChild.textContent=x.you?DATA.youLabel:(x.type||'From the video');box.appendChild(document.createTextNode(x.text));box.hidden=false;box.scrollIntoView({block:'nearest',behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
 let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
+/* In-deck video player: bottom sheet, youtube-nocookie embed, falls back to a YouTube link */
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+let pfr=null;
+function fail(s){$('pv').innerHTML='<div class="pf">This video can\\'t play here.<a class="yt" target="_blank" rel="noopener">\u25B6 Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
+function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));
+ $('pt').textContent='\u25B6 '+(s?fmt(s):'From the start');$('po').href=short(s);$('ov').classList.add('on');$('ov').setAttribute('aria-hidden','false');
+ if(location.protocol==='file:')return fail(s);
+ const f=document.createElement('iframe');f.title='YouTube video';f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
+ f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(DATA.videoId)+'?start='+s+'&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin='+encodeURIComponent(location.origin);
+ f.onload=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}};
+ $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;f.dataset.s=s}
+function stop(){$('ov').classList.remove('on');$('ov').setAttribute('aria-hidden','true');$('pv').innerHTML='';pfr=null}
+window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)return;let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch(x){return}
+ if(d&&d.event==='onError')fail(+pfr.dataset.s)});
+$('px').onclick=stop;$('ov').addEventListener('click',e=>{if(e.target===$('ov'))stop()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
+$('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);
 <\/script></body></html>
 `;
@@ -374,7 +400,6 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .info .it{display:block;font-weight:700;font-size:13px;margin-bottom:4px;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
 .info.you .it{color:var(--bluedot)}
 .ib.act{outline:2px solid var(--fg);outline-offset:1px}
-.nav{position:absolute;top:0;bottom:0;width:22%;z-index:2}.nav.l{left:0}.nav.r{right:0}
 .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 4px}
 .watch{background:#e11d1d;color:#fff;padding:7px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
 .arr button{width:36px;height:36px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:18px;margin-left:6px}
@@ -385,15 +410,21 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
+.pv{position:relative;width:100%;aspect-ratio:16/9;background:#000}.pv iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.pf{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;text-align:center;color:var(--muted);font-size:14px}
+.yt{background:#e11d1d;color:#fff;padding:8px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
+.ov .mh{padding:10px 12px 10px 16px;font-weight:600;font-size:14px}.ov .mh a{color:var(--muted);font-size:12.5px;font-weight:500;text-decoration:none;margin-left:auto}
+.ov .modal{padding-bottom:env(safe-area-inset-bottom,0px)}
 </style></head><body>
 <div class="wrap">
  <div class="prog" id="prog"></div>
  <div class="head"><div class="ch" id="ch"></div><div class="vt" id="vt"></div><div class="for" id="for"></div></div>
  <div class="key"><span><i style="background:var(--gold)"></i>From the video</span><span><i style="background:var(--bluedot)"></i>For you</span></div>
- <div class="cards" id="cards"><div class="nav l" id="nl"></div><div class="nav r" id="nr"></div></div>
+ <div class="cards" id="cards"></div>
  <div class="foot"><a class="watch" id="watch" target="_blank" rel="noopener">\u25B6 Watch video</a><div class="arr"><button id="bp" aria-label="Back">\u2039</button><button id="bn" aria-label="Next">\u203A</button></div></div>
  <div class="tag">Any YouTube video, applied to you. <small>\xB7 Made with <b>iTabs</b> \xB7 itabs.co</small></div>
 </div>
+<div class="ov" id="ov" aria-hidden="true"><div class="modal" role="dialog" aria-label="Video"><div class="mh"><span id="pt">\u25B6 Video</span><a id="po" target="_blank" rel="noopener">Open in YouTube \u2197</a><button class="mx" id="px" aria-label="Close video">\u2715</button></div><div class="pv" id="pv"></div></div></div>
 <script>
 /* ===== ONLY EDIT THIS DATA BLOCK ===== */
 const DATA = {
@@ -417,21 +448,42 @@ const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({
 $('ch').textContent=DATA.channel;const sp=document.createElement('span');sp.textContent=' \xB7 '+DATA.videoTitle;$('ch').appendChild(sp);$('for').textContent=DATA.forWho?'Personalised for '+DATA.forWho:'';
 document.title='iTabs | '+DATA.videoTitle;
 const yt=DATA.videoId?'https://www.youtube.com/watch?v='+DATA.videoId:'';if(yt)$('watch').href=yt;else $('watch').hidden=true;
+const short=s=>'https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;
+const secs=c=>{let s=Number(c.seconds);if(!(s>0)&&c.time&&/^\\d+(:\\d{1,2}){1,2}$/.test(c.time))s=c.time.split(':').reduce((a,x)=>a*60+(+x),0);return Number.isFinite(s)&&s>=0?Math.round(s):null};
 let cur=0;const N=DATA.cards.length;
 DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='seg';$('prog').appendChild(s);
  const el=document.createElement('div');el.className='card';
- const t=c.time?(yt&&c.seconds?\`<a class="ts" target="_blank" rel="noopener" href="https://youtu.be/\${DATA.videoId}?t=\${Math.round(c.seconds)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
+ const sec=secs(c);
+ const t=c.time?(yt&&sec!=null?\`<a class="ts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
  el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,\${c.colors||'#1e3a8a,#38bdf8'})"><b>\${esc(c.band)}</b>\${t}</div><div class="body"><div class="num">Point \${i+1} of \${N}</div><h2>\${esc(c.headline)}</h2><p class="sum">\${esc(c.summary)}</p><div class="btns">\${(c.buttons||[]).map((b,j)=>\`<button class="ib\${b.you?' you':''}" data-i="\${i}" data-j="\${j}"><span>i</span>\${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>\`).join('')}</div><div class="info" hidden></div></div></div>\`;
- $('cards').insertBefore(el,$('nl'));});
+ $('cards').appendChild(el);});
 function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i}
 const go=d=>{const n=cur+d;if(n>=0&&n<N)show(n)};
-$('nl').onclick=()=>go(-1);$('nr').onclick=()=>go(1);$('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
+$('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
 $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)return;const card=b.closest('.card'),box=card.querySelector('.info'),x=DATA.cards[b.dataset.i].buttons[b.dataset.j];
  const was=b.classList.contains('act');card.querySelectorAll('.ib').forEach(z=>z.classList.remove('act'));
  if(was){box.hidden=true;return}
  b.classList.add('act');box.className='info'+(x.you?' you':'');box.innerHTML='<span class="it"></span>';box.firstChild.textContent=x.you?DATA.youLabel:(x.type||'From the video');box.appendChild(document.createTextNode(x.text));box.hidden=false;box.scrollIntoView({block:'nearest',behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
 let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
+/* In-deck video player: bottom sheet, youtube-nocookie embed, falls back to a YouTube link */
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+let pfr=null;
+function fail(s){$('pv').innerHTML='<div class="pf">This video can\\'t play here.<a class="yt" target="_blank" rel="noopener">\u25B6 Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
+function play(s){if(!DATA.videoId)return;s=Math.max(0,Math.round(s||0));
+ $('pt').textContent='\u25B6 '+(s?fmt(s):'From the start');$('po').href=short(s);$('ov').classList.add('on');$('ov').setAttribute('aria-hidden','false');
+ if(location.protocol==='file:')return fail(s);
+ const f=document.createElement('iframe');f.title='YouTube video';f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;
+ f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(DATA.videoId)+'?start='+s+'&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin='+encodeURIComponent(location.origin);
+ f.onload=()=>{try{f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}};
+ $('pv').innerHTML='';$('pv').appendChild(f);pfr=f;f.dataset.s=s}
+function stop(){$('ov').classList.remove('on');$('ov').setAttribute('aria-hidden','true');$('pv').innerHTML='';pfr=null}
+window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)return;let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch(x){return}
+ if(d&&d.event==='onError')fail(+pfr.dataset.s)});
+$('px').onclick=stop;$('ov').addEventListener('click',e=>{if(e.target===$('ov'))stop()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')stop()});
+$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
+$('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);
 <\/script></body></html>
 
@@ -533,14 +585,9 @@ function decorateDeck(page, data, id, origin, embed) {
     url: `${origin}/d/${id}`,
     image: data.videoId ? `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg` : `${origin}/og.png`
   });
-  const extras = TIMESTAMP_FIX + (embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id)));
+  const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
   return page.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
 }
-var TIMESTAMP_FIX = `<script>
-(()=>{if(!DATA.videoId)return;document.querySelectorAll('.card').forEach((el,i)=>{const a=el.querySelector('a.ts'),c=DATA.cards[i];if(!a||!c)return;
- const s=Math.max(0,Math.round(Number(c.seconds)||0));if(s)a.href='https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;else a.removeAttribute('href')})})();
-<\/script>
-`;
 var EMBED_EXTRAS = `<meta name="robots" content="noindex"><style>.tag{display:none}.wrap{padding-bottom:6px}</style>
 `;
 var DECK_EXTRAS = `<style>
@@ -586,7 +633,7 @@ function renderHome(origin, featuredId) {
   const example = featuredId ? `<section class="ex" aria-label="Example iTabs">
   <div class="exh"><h3>See an example</h3><a href="/d/${featuredId}" target="_blank" rel="noopener">Open \u2197</a></div>
   <p class="key2"><i class="g"></i>Gold = from the video \xB7 <i class="b"></i>Blue = for you</p>
-  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy"></iframe>
+  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
  </section>` : "";
   return page_default.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example);
 }

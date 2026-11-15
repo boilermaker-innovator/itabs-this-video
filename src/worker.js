@@ -99,17 +99,9 @@ export function decorateDeck(page, data, id, origin, embed) {
     image: data.videoId ? `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg` : `${origin}/og.png`,
   });
   // Embedded example on the main page: no feedback (keeps stats honest), no Share/"Make your own".
-  const extras = TIMESTAMP_FIX + (embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id)));
+  const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
   return page.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
 }
-
-// The template links timestamps as youtube.com/watch?v=…&t=…s, which the iPhone YouTube
-// app opens at 0:00. Rewrite them to the short form youtu.be/<id>?t=<whole seconds>.
-const TIMESTAMP_FIX = `<script>
-(()=>{if(!DATA.videoId)return;document.querySelectorAll('.card').forEach((el,i)=>{const a=el.querySelector('a.ts'),c=DATA.cards[i];if(!a||!c)return;
- const s=Math.max(0,Math.round(Number(c.seconds)||0));if(s)a.href='https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;else a.removeAttribute('href')})})();
-</script>
-`;
 
 const EMBED_EXTRAS = `<meta name="robots" content="noindex"><style>.tag{display:none}.wrap{padding-bottom:6px}</style>
 `;
@@ -159,7 +151,7 @@ export function renderHome(origin, featuredId) {
     ? `<section class="ex" aria-label="Example iTabs">
   <div class="exh"><h3>See an example</h3><a href="/d/${featuredId}" target="_blank" rel="noopener">Open ↗</a></div>
   <p class="key2"><i class="g"></i>Gold = from the video · <i class="b"></i>Blue = for you</p>
-  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy"></iframe>
+  <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
  </section>`
     : "";
   return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example);

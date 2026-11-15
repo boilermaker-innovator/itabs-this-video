@@ -280,3 +280,68 @@ test("main page: quick-pick chips fill the box and progress messages rotate", as
   await b.close();
   for (const m of ["Pulling the transcript…", "Finding the key moments…", "Making your gold cards…", "Tailoring blue cards for you…"]) assert.ok(seen.has(m), m);
 });
+
+test("in-deck player: badge opens at that second, switches, closes, Watch video, fallback; no tap zones", async (t) => {
+  const { createRequire } = await import("node:module");
+  let pw;
+  try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
+  const { decorateDeck } = await import("../dist/worker.js");
+  const d = validateDeck(goodDeck()).data; d.videoId = "dQw4w9WgXcQ";
+  const page = decorateDeck(renderDeck(d), d, "abcd1234", "https://x.dev", false);
+  const b = await pw.chromium.launch();
+  const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
+  let blockEmbed = false;
+  await p.route("https://x.dev/d/abcd1234", (r) => r.fulfill({ contentType: "text/html", body: page }));
+  await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body:
+    `<body style="background:#000;color:#fff">stub player<script>addEventListener("message",e=>{if(${"BLOCK"})parent.postMessage(JSON.stringify({event:"onError",info:150}),"*")})</script>`
+      .replace("BLOCK", String(blockEmbed)) }));
+  await p.goto("https://x.dev/d/abcd1234");
+  const src = () => p.$eval("#pv iframe", (f) => f.src).catch(() => null);
+
+  assert.equal(await p.$$eval(".nav", (n) => n.length), 0, "no invisible tap zones");
+  const box = await p.locator(".card.on a.ts").boundingBox();
+  assert.equal(await p.evaluate(([x, y]) => document.elementFromPoint(x, y).closest("a.ts") !== null, [box.x + box.width / 2, box.y + box.height / 2]), true, "badge is tappable");
+  const ib = await p.locator(".card.on .ib").last().boundingBox();
+  assert.equal(await p.evaluate(([x, y]) => !!document.elementFromPoint(x, y).closest(".ib"), [ib.x + ib.width / 2, ib.y + ib.height / 2]), true, "i-button is tappable");
+
+  await p.locator(".card.on a.ts").tap();                         // card 1 = 1:05 → 65s
+  assert.ok(await p.isVisible("#ov.on"));
+  assert.equal(await src(), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=65&autoplay=1&playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fx.dev");
+  assert.equal(await p.textContent("#pt"), "▶ 1:05");
+  assert.equal(p.url(), "https://x.dev/d/abcd1234", "stayed in the deck");
+  await p.tap("#px");
+  assert.equal(await p.isVisible("#ov.on"), false); assert.equal(await src(), null, "closing removes the player (stops video)");
+
+  await p.tap("#bn"); await p.waitForTimeout(350);
+  await p.locator(".card.on a.ts").tap();                         // card 2 = 2:05 → 125s
+  assert.match(await src(), /start=125&/);
+  await p.tap("#px");
+  await p.tap("#watch");
+  assert.match(await src(), /\/embed\/dQw4w9WgXcQ\?start=0&autoplay=1&playsinline=1&rel=0/);
+  assert.equal(await p.textContent("#pt"), "▶ From the start");
+  await p.tap("#px");
+
+  // swipe still works
+  await p.evaluate(() => { const c = document.getElementById("cards"), tt = (x) => [new Touch({ identifier: 1, target: c, clientX: x, clientY: 300 })];
+    c.dispatchEvent(new TouchEvent("touchstart", { touches: tt(300), changedTouches: tt(300) })); c.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: tt(100) })); });
+  await p.waitForTimeout(350);
+  assert.equal(await p.textContent(".card.on .num"), "Point 3 of 7");
+
+  // embedding disabled → friendly fallback link to youtu.be at that second
+  blockEmbed = true;
+  await p.unroute("https://www.youtube-nocookie.com/**");
+  await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body:
+    `<script>addEventListener("message",()=>parent.postMessage(JSON.stringify({event:"onError",info:150}),"*"))</script>` }));
+  await p.locator(".card.on a.ts").tap();                         // 3:05 → 185s
+  await p.waitForSelector("#pv .pf");
+  assert.equal(await p.$eval("#pv .pf a", (a) => a.href), "https://youtu.be/dQw4w9WgXcQ?t=185");
+  assert.equal(await p.$eval("#pv .pf a", (a) => a.target), "_blank");
+  await b.close();
+});
+
+test("skill template is the same as the site template", async () => {
+  const { readFileSync } = await import("node:fs");
+  const sk = readFileSync(new URL("../src/skill.md", import.meta.url), "utf8");
+  const tpl = readFileSync(new URL("../src/template.html", import.meta.url), "utf8");
+  assert.equal(sk.slice(sk.indexOf("```html\n") + 8, sk.lastIndexOf("```")).trimEnd(), tpl.trimEnd());
+});

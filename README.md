@@ -128,6 +128,7 @@ Old workers.dev links keep working.
 | Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
 | Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
 | Make your own | A link in every deck footer, back to the main page. |
+| Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a YouTube player in a bottom sheet at that second. ✕ closes it. If the creator blocks embedding, the sheet shows an **Open in YouTube** button instead. The same template is used in the skill. |
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
 
