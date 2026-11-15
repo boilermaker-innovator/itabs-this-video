@@ -433,7 +433,7 @@ test("iPhone: long card with player open — scroll down, open i-buttons; vertic
   assert.equal(await num(), "Point 4 of 7");
   const top = (await p.locator(".card.on .in").boundingBox()).y;
   const dk = await p.locator("#dock").boundingBox();
-  assert.ok(top >= dk.y + dk.height && top < vh / 2, "new card starts just below the player: " + top);
+  assert.ok(top >= dk.y + dk.height && top - (dk.y + dk.height) < 120, `new card starts just below the player (header in between): card ${top}, player bottom ${dk.y + dk.height}`);
 });
 
 test("iPhone: Listen mode — slim strip with visible video, keeps playing across cards and i-buttons", async (t) => {
