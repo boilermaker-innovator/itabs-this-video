@@ -76,7 +76,9 @@ Everything happens in Safari. There are 5 parts and about 15 minutes in total.
 3. Tap **Deploy**.
 4. Visit `/stats` on your site, for example `itabs-this-video.yourname.workers.dev/stats`, and type the PIN.
 
-The page shows decks made (today and in total), 👍 vs 👎, how many people did something, and the latest 10 decks. After 5 wrong PINs, it locks for an hour.
+The page shows decks made **today, this week (from Monday) and in total**, in Perth time. It also shows 👍 vs 👎, how many people did something, and the latest 20 decks with their time and YouTube link. After 5 wrong PINs, it locks for an hour.
+
+The counts come from the decks themselves: each deck is saved in KV with only its creation time, YouTube video ID, language and title, and no personal info. To use another time zone, add a **Text** variable `STATS_TIMEZONE` (for example `Australia/Sydney`).
 
 ## Part G (optional): Show an example deck on the main page
 

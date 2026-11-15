@@ -987,9 +987,7 @@ async function stats(request, env) {
     await bump(env, rk, 7200);
     return html(statsPage("Wrong PIN."), 401, noStore);
   }
-  const day = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-  const [today, fbRaw] = await Promise.all([getCount(env, `n:decks:${day}`), env.DECKS.get("stats:fb")]);
-  const fb = JSON.parse(fbRaw || "{}");
+  const fb = JSON.parse(await env.DECKS.get("stats:fb") || "{}");
   const decks = [];
   let cursor;
   for (let i = 0; i < 10; i++) {
@@ -998,10 +996,18 @@ async function stats(request, env) {
     if (page.list_complete) break;
     cursor = page.cursor;
   }
-  const recent = decks.filter((k) => k.metadata && k.metadata.created).sort((a, b) => a.metadata.created < b.metadata.created ? 1 : -1).slice(0, 10);
+  const tz = statsTimeZone(env);
+  const { today, weekStart } = periodStarts(/* @__PURE__ */ new Date(), tz);
+  const dated = decks.filter((k) => k.metadata && k.metadata.created);
+  const localDay = (iso) => ymd(new Date(iso), tz);
+  const todayCount = dated.filter((k) => localDay(k.metadata.created) === today).length;
+  const weekCount = dated.filter((k) => localDay(k.metadata.created) >= weekStart).length;
+  const recent = dated.sort((a, b) => a.metadata.created < b.metadata.created ? 1 : -1).slice(0, 20);
   const recentFb = await Promise.all(recent.map((k) => env.DECKS.get("fb:" + k.name.slice(5)).then((x) => JSON.parse(x || "{}"))));
   return html(statsPage(null, {
-    today,
+    today: todayCount,
+    week: weekCount,
+    tz,
     total: decks.length,
     up: fb.up || 0,
     down: fb.down || 0,
@@ -1009,6 +1015,26 @@ async function stats(request, env) {
     notyet: fb.notyet || 0,
     recent: recent.map((k, i) => ({ id: k.name.slice(5), ...k.metadata, fb: recentFb[i] }))
   }), 200, noStore);
+}
+function statsTimeZone(env) {
+  const tz = String(env.STATS_TIMEZONE || "Australia/Perth").trim();
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return tz;
+  } catch {
+    return "Australia/Perth";
+  }
+}
+function ymd(date, tz) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+function periodStarts(now, tz) {
+  const wd = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(now);
+  const back = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(wd);
+  return { today: ymd(now, tz), weekStart: ymd(new Date(now.getTime() - back * 864e5), tz) };
+}
+function localTime(iso, tz) {
+  return new Intl.DateTimeFormat("en-AU", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
 async function sameText(a, b) {
   const [x, y] = await Promise.all([sha256(a), sha256(b)]);
@@ -1019,14 +1045,17 @@ async function sameText(a, b) {
 function statsPage(error, s) {
   const e = (v) => escAttr(v == null ? "" : v);
   const tile = (n, label) => `<div class="t"><b>${n}</b><span>${label}</span></div>`;
-  const body = s ? `<div class="g">${tile(s.today, "Decks today")}${tile(s.total, "Decks total")}${tile(s.up, "\u{1F44D} Useful")}${tile(s.down, "\u{1F44E} Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
-<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e((r.created || "").slice(0, 16).replace("T", " "))} UTC \xB7 ${e(r.lang)}${r.mode === "other" ? " \xB7 for someone else" : ""} \xB7 \u{1F44D}${r.fb.up || 0} \u{1F44E}${r.fb.down || 0} \u2705${r.fb.yes || 0}</small></li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
+  const body = s ? `<div class="g3">${tile(s.today, "Today")}${tile(s.week, "This week")}${tile(s.total, "Total")}</div>
+<p class="tz">Decks made \xB7 ${e(s.tz)} time \xB7 week starts Monday</p>
+<h2>Feedback</h2><div class="g">${tile(s.up, "\u{1F44D} Useful")}${tile(s.down, "\u{1F44E} Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
+<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} \xB7 ${e(r.lang)}${r.mode === "other" ? " \xB7 for someone else" : ""} \xB7 \u{1F44D}${r.fb.up || 0} \u{1F44E}${r.fb.down || 0} \u2705${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">\u25B6 youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
 <a class="btn" href="/stats">Lock</a>` : `<form method="post"><label for="pin">PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>${error ? `<p class="err">${e(error)}</p>` : ""}<button class="btn">Show stats</button></form>`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Stats | iTabs This Video</title>
 <style>:root{color-scheme:dark}*{box-sizing:border-box;margin:0}body{background:#0b0c0f;color:#f4f5f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
 .w{max-width:460px;margin:0 auto;padding:24px 16px 40px}h1{font-size:22px;margin-bottom:16px}h2{font-size:15px;margin:22px 0 8px;color:#a3a8b3}
-.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
-ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}li{background:#16181d;border-radius:12px;padding:10px 12px}li a{color:#f4f5f7;font-weight:600;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li small{color:#a3a8b3;font-size:12px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.tz{color:#a3a8b3;font-size:12px;margin-top:6px}
+li a.yt{display:inline-block;margin-top:4px;color:#f87171;font-size:12.5px;font-weight:600}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
+ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}li{background:#16181d;border-radius:12px;padding:10px 12px}li a{color:#f4f5f7;font-weight:600;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li small{display:block;color:#a3a8b3;font-size:12px}
 label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}input{width:100%;background:#16181d;color:#f4f5f7;border:1px solid #2e323a;border-radius:12px;padding:13px 14px;font-size:16px}
 .btn{display:block;width:100%;margin-top:14px;background:#f59e0b;color:#000;border:0;border-radius:14px;padding:13px;font:700 16px system-ui,sans-serif;text-align:center;text-decoration:none}
 .err{color:#fecaca;font-size:14px;margin-top:8px}.m{color:#a3a8b3}</style></head>
@@ -1116,8 +1145,11 @@ export {
   decorateDeck,
   worker_default as default,
   parseVideoId,
+  periodStarts,
   previewTags,
   renderDeck,
   renderHome,
-  validateDeck
+  statsTimeZone,
+  validateDeck,
+  ymd
 };

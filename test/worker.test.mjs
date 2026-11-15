@@ -210,7 +210,9 @@ test("stats page needs the PIN and shows the numbers", async () => {
   assert.match(await (await get(e, "/stats")).text(), /type="password"/);
   const bad = await get(e, "/stats", form("0000")); assert.equal(bad.status, 401);
   const ok = await (await get(e, "/stats", form("4321"))).text();
-  assert.match(ok, /<b>1<\/b><span>Decks today/); assert.match(ok, /<b>1<\/b><span>Decks total/);
+  assert.match(ok, /<b>1<\/b><span>Today/); assert.match(ok, /<b>1<\/b><span>This week/); assert.match(ok, /<b>1<\/b><span>Total/);
+  assert.ok(ok.includes('href="https://youtu.be/dQw4w9WgXcQ"'), "YouTube link listed");
+  assert.ok(ok.includes("Australia/Perth time"));
   assert.match(ok, /<b>3<\/b><span>👍/); assert.match(ok, /<b>1<\/b><span>👎/); assert.match(ok, /<b>2<\/b><span>Did something/);
   assert.ok(ok.includes(`/d/${id}`));
   for (let i = 0; i < 5; i++) await get(e, "/stats", form("1111"));
@@ -507,4 +509,26 @@ test("iPhone: Listen mode — slim strip with visible video, keeps playing acros
   await p.tap("#px"); assert.equal(await p.locator("#pv iframe").count(), 0);
   await p.locator(".card.on a.ts").tap();
   assert.ok(await p.locator("#dock.listen").isVisible(), "reopens in remembered Listen size");
+});
+
+test("stats: today / this week / total counted in local time from saved decks", async () => {
+  const { periodStarts, ymd } = await import("../dist/worker.js");
+  // Monday 9am Perth = Monday 01:00 UTC; Sunday 11pm UTC is already Monday in Perth
+  assert.deepEqual(periodStarts(new Date("2026-11-16T01:00:00Z"), "Australia/Perth"), { today: "2026-11-16", weekStart: "2026-11-16" });
+  assert.deepEqual(periodStarts(new Date("2026-11-19T12:00:00Z"), "Australia/Perth"), { today: "2026-11-19", weekStart: "2026-11-16" });
+  assert.equal(ymd(new Date("2026-11-15T23:30:00Z"), "Australia/Perth"), "2026-11-16");
+
+  const e = { ...env(), STATS_PIN: "4321" };
+  const now = Date.now(), iso = (msAgo) => new Date(now - msAgo).toISOString();
+  const { today, weekStart } = periodStarts(new Date(now), "Australia/Perth");
+  const put = (id, created) => e.DECKS.put("deck:" + id, "{}", { metadata: { created, videoId: "abcdefghijk", lang: "en", title: "T " + id } });
+  const ages = [0, 3600e3, 2 * 86400e3, 6 * 86400e3, 8 * 86400e3, 40 * 86400e3];
+  ages.forEach((a, i) => put("deck000" + i, iso(a)));
+  const local = ages.map((a) => ymd(new Date(now - a), "Australia/Perth"));
+  const expToday = local.filter((d) => d === today).length, expWeek = local.filter((d) => d >= weekStart).length;
+  const html = await (await worker.fetch(new Request("https://x.dev/stats", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "CF-Connecting-IP": "1.1.1.1" }, body: "pin=4321" }), e)).text();
+  assert.ok(html.includes(`<b>${expToday}</b><span>Today`), "today " + expToday);
+  assert.ok(html.includes(`<b>${expWeek}</b><span>This week`), "week " + expWeek);
+  assert.ok(html.includes(`<b>6</b><span>Total`));
+  assert.equal((html.match(/youtu\.be\/abcdefghijk"/g) || []).length, 6);
 });
