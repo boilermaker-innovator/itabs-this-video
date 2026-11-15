@@ -260,3 +260,23 @@ test("timestamp links use youtu.be/<id>?t=<whole seconds>", async (t) => {
   }
   await b.close();
 });
+
+test("main page: quick-pick chips fill the box and progress messages rotate", async (t) => {
+  const { createRequire } = await import("node:module");
+  let chromium;
+  try { ({ chromium } = createRequire(import.meta.url)("playwright")); } catch { return t.skip("playwright not installed"); }
+  const html = await (await get(env(), "/")).text();
+  const b = await chromium.launch(); const p = await b.newPage();
+  await p.route("**/api/make", () => {});                      // never answers: stay on the loading screen
+  await p.route("https://x.dev/", (r) => r.fulfill({ contentType: "text/html", body: html }));
+  await p.goto("https://x.dev/");
+  await p.click("text=Busy manager");
+  assert.equal(await p.inputValue("#about"), "Busy manager");
+  await p.fill("#about", "Busy manager of a café"); assert.equal(await p.inputValue("#about"), "Busy manager of a café", "still editable");
+  await p.click("text=Small business owner"); assert.equal(await p.inputValue("#about"), "Small business owner");
+  await p.fill("#url", "https://youtu.be/dQw4w9WgXcQ"); await p.click("#go");
+  const seen = new Set();
+  for (let i = 0; i < 30 && seen.size < 4; i++) { seen.add(await p.textContent("#msg")); await p.waitForTimeout(500); }
+  await b.close();
+  for (const m of ["Pulling the transcript…", "Finding the key moments…", "Making your gold cards…", "Tailoring blue cards for you…"]) assert.ok(seen.has(m), m);
+});

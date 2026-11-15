@@ -12,7 +12,7 @@ You are helping someone turn a YouTube video into a swipeable card deck made for
 Ask for anything that's missing, in one short message:
 1. **The YouTube link**
 2. **The transcript.** If you can't read the video yourself, ask them to paste it. Tip for them: on YouTube tap the description, then "Show transcript", or use the free YouTube Transcript Generator at vidiq.com.
-3. **Who's watching?** One line about them, e.g. "I run a coffee van in Perth" or "I'm building a robot arm at home". They can also make it for someone else ("my mate Sam, a plumber").
+3. **Who's watching?** One line about them, e.g. "I run a coffee van in Perth" or "I'm building a robot arm at home". They can also make it for someone else ("my mate Sam, a plumber"). Offer these quick picks they can tap or type: **Apprentice on a job site** · **Busy manager** · **Beginner** · **Small business owner**.
 4. **What do you want from this video?** e.g. "learn the basics", "ideas for my business", "decide if it's worth trying". This decides what the blue buttons focus on. If their answer is vague ("see if it's worth it"), ask one short follow-up: "Worth it for what? A hobby, your work, your kids, a business idea?"
 
 Optional, if they want: attach anything about them (notes, a plan, a website link) and pick a language for the deck.

@@ -134,6 +134,9 @@ textarea{resize:vertical;min-height:88px}
 input:focus,textarea:focus,select:focus{border-color:var(--bluedot)}
 select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 15px) 55%;background-size:5px 5px;background-repeat:no-repeat}
 .count{font-size:12px;color:var(--muted);text-align:right;margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:16px;padding:6px 11px;font:500 13px inherit;font-family:inherit;cursor:pointer}
+.chips button:active{transform:scale(.97)}.chips button[aria-pressed=true]{border-color:var(--bluedot);background:#1e3a8a66}
 .count.over{color:var(--red)}
 .note{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .note b{color:var(--gold)}
@@ -147,7 +150,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .dots{display:flex;gap:8px}.dots i{width:12px;height:12px;border-radius:50%;background:var(--gold);animation:b 1.2s infinite ease-in-out}
 .dots i:nth-child(2){animation-delay:.15s;background:var(--bluedot)}.dots i:nth-child(3){animation-delay:.3s}
 @keyframes b{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
-.loading .msg{font-size:18px;font-weight:600}.loading small{color:var(--muted);font-size:13px}
+.loading .msg{font-size:18px;font-weight:600;transition:opacity .25s}.loading .msg.fade{opacity:0}.loading small{color:var(--muted);font-size:13px}
 .done{display:flex;flex-direction:column;gap:14px;padding-top:6px}
 .done h2{font-size:22px}
 .linkbox{display:flex;gap:8px}
@@ -183,6 +186,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
   <div><div class="seg" role="group" aria-label="Who is this for?"><button type="button" id="mMe" aria-pressed="true">For me</button><button type="button" id="mOther" aria-pressed="false">For someone else</button></div>
    <label for="about" id="aboutLabel">Who's watching? <small>a short description</small></label>
    <textarea id="about" maxlength="300" placeholder="e.g. I run a coffee van in Perth" required></textarea>
+   <div class="chips" id="chips" aria-label="Quick picks"><button type="button">Apprentice on a job site</button><button type="button">Busy manager</button><button type="button">Beginner</button><button type="button">Small business owner</button></div>
    <div class="count" id="count">0 / 300</div></div>
   <div><label for="lang">Language</label>
    <select id="lang">
@@ -205,7 +209,7 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 
  <div class="loading" id="loading" hidden aria-live="polite">
   <div class="dots"><i></i><i></i><i></i></div>
-  <div class="msg" id="msg">Watching the video\u2026</div>
+  <div class="msg" id="msg">Pulling the transcript\u2026</div>
   <small>This usually takes 20\u201360 seconds. Keep this page open.</small>
  </div>
 
@@ -237,13 +241,16 @@ function setMode(m){mode=m;$('mMe').setAttribute('aria-pressed',m==='me');$('mOt
  $('about').placeholder=m==='me'?'e.g. I run a coffee van in Perth':'e.g. my mate Kristian, building a robot arm'}
 $('mMe').onclick=()=>setMode('me');$('mOther').onclick=()=>setMode('other');
 const about=$('about'),count=$('count');
-const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300)};
+const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300);
+ document.querySelectorAll('#chips button').forEach(b=>b.setAttribute('aria-pressed',b.textContent===about.value))};
+document.querySelectorAll('#chips button').forEach(b=>b.onclick=()=>{about.value=b.textContent;upd()});
 about.addEventListener('input',upd);
 function err(t){$('err').textContent=t;$('err').hidden=!t;if(t)$('err').scrollIntoView({block:'center',behavior:'smooth'})}
 function view(v){$('form').hidden=v!=='form';$('extras').hidden=v==='loading';$('loading').hidden=v!=='loading';$('done').hidden=v!=='done';window.scrollTo(0,0)}
-const MSGS=['Watching the video\u2026','Picking out the key points\u2026','Applying it to you\u2026','Writing your cards\u2026','Nearly there\u2026'];
+const MSGS=['Pulling the transcript\u2026','Finding the key moments\u2026','Making your gold cards\u2026','Tailoring blue cards for you\u2026'];
 let timer;
-function startMsgs(transcript){let i=0;$('msg').textContent=transcript?'Reading the transcript\u2026':MSGS[0];clearInterval(timer);timer=setInterval(()=>{i=Math.min(i+1,MSGS.length-1);$('msg').textContent=MSGS[i]},9000)}
+function startMsgs(){let i=0;const m=$('msg');m.textContent=MSGS[0];m.classList.remove('fade');clearInterval(timer);
+ timer=setInterval(()=>{i=(i+1)%MSGS.length;m.classList.add('fade');setTimeout(()=>{m.textContent=MSGS[i];m.classList.remove('fade')},250)},3500)}
 
 $('form').addEventListener('submit',async e=>{
  e.preventDefault();err('');
@@ -252,7 +259,7 @@ $('form').addEventListener('submit',async e=>{
  if(!/(youtube\\.com|youtu\\.be)\\//i.test(url)&&!/^[\\w-]{11}$/.test(url))return err("That doesn't look like a YouTube link.");
  if(!a)return err(mode==='me'?"Tell us a little about who's watching.":"Tell us a little about who it's for.");
  if(useTr&&tr.length<200)return err('Paste the whole transcript into the box (it looks too short).');
- view('loading');startMsgs(useTr);
+ view('loading');startMsgs();
  let res,data;
  try{
   res=await fetch('/api/make',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,about:a,lang,mode,transcript:useTr?tr:undefined})});
@@ -290,7 +297,7 @@ You are helping someone turn a YouTube video into a swipeable card deck made for
 Ask for anything that's missing, in one short message:
 1. **The YouTube link**
 2. **The transcript.** If you can't read the video yourself, ask them to paste it. Tip for them: on YouTube tap the description, then "Show transcript", or use the free YouTube Transcript Generator at vidiq.com.
-3. **Who's watching?** One line about them, e.g. "I run a coffee van in Perth" or "I'm building a robot arm at home". They can also make it for someone else ("my mate Sam, a plumber").
+3. **Who's watching?** One line about them, e.g. "I run a coffee van in Perth" or "I'm building a robot arm at home". They can also make it for someone else ("my mate Sam, a plumber"). Offer these quick picks they can tap or type: **Apprentice on a job site** \xB7 **Busy manager** \xB7 **Beginner** \xB7 **Small business owner**.
 4. **What do you want from this video?** e.g. "learn the basics", "ideas for my business", "decide if it's worth trying". This decides what the blue buttons focus on. If their answer is vague ("see if it's worth it"), ask one short follow-up: "Worth it for what? A hobby, your work, your kids, a business idea?"
 
 Optional, if they want: attach anything about them (notes, a plan, a website link) and pick a language for the deck.
