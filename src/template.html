@@ -4,21 +4,21 @@
 <style>
 :root{--bg:#0b0c0f;--card:#16181d;--raised:#23262d;--fg:#f4f5f7;--muted:#a3a8b3;--gold:#f59e0b;--blue:#1e3a8a;--bluedot:#60a5fa;color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
+html{scroll-padding-top:var(--ph,0px)}html,body{min-height:100%}
 body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
-.wrap{max-width:440px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:0 12px}
+.wrap{max-width:440px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 12px}
 .prog{display:flex;gap:4px;padding:8px 0 4px}.seg{flex:1;height:3px;border-radius:2px;background:#ffffff38}.seg.on{background:var(--fg)}
 .head{padding:4px 0 2px}.ch{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ch span{font-weight:400;color:var(--muted)}.vt{display:none}
 .for{font-size:12px;color:var(--bluedot);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .key{display:flex;gap:12px;font-size:11px;color:var(--muted);padding:4px 0 6px}.key i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:-1px}
 .cards{flex:0 1 auto;position:relative;overflow:hidden;min-height:0;display:grid;align-items:start}
-.card{grid-area:1/1;display:flex;flex-direction:column;opacity:0;transform:translateX(100%);transition:.3s;pointer-events:none}
-.card.on{opacity:1;transform:none;pointer-events:auto}.card.prev{transform:translateX(-100%)}
-.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden;max-height:calc(100vh - 230px - var(--ph,0px))}
+.card{grid-area:1/1;display:flex;flex-direction:column;opacity:0;transform:translateX(100%);transition:.3s;pointer-events:none;position:absolute;top:0;left:0;right:0}
+.card.on{opacity:1;transform:none;pointer-events:auto;position:relative}.card.prev{transform:translateX(-100%)}
+.in{display:flex;flex-direction:column;background:var(--card);border-radius:16px;overflow:hidden}
 .band{height:42px;display:flex;align-items:center;padding:0 14px;position:relative;flex-shrink:0}
 .band b{font-size:15px;line-height:1.1;color:#fff;max-width:72%;text-shadow:0 2px 10px #0006}
 .ts{position:absolute;top:50%;transform:translateY(-50%);right:12px;background:#000a;color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;text-decoration:none}
-.body{padding:12px 14px 14px;display:flex;flex-direction:column;flex:0 1 auto;overflow-y:auto;min-height:0}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column}
 .num{font-size:10.5px;color:var(--bluedot);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
 h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:var(--muted)}
 .btns{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
@@ -40,7 +40,7 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .badge{font-size:10.5px;padding:3px 8px;border-radius:4px;text-transform:uppercase;font-weight:700;background:var(--gold);color:#000;margin-left:8px}.badge.you{background:var(--bluedot);color:#0b1a3d}
 .mx{width:32px;height:32px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:20px}
 .mb{padding:16px 18px 24px;overflow-y:auto;color:var(--muted);font-size:15.5px;white-space:pre-line}
-.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden}
+.dock{flex-shrink:0;margin-top:8px;background:var(--card);border-radius:14px;overflow:hidden;position:sticky;top:0;z-index:10;box-shadow:0 0 0 12px var(--bg)}
 .dh{display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;font-size:13px}
 .dt{border:0;background:none;color:var(--fg);font:600 13px inherit;font-family:inherit;padding:0;cursor:pointer;white-space:nowrap;margin-right:auto}
 .dh a{color:var(--muted);font-size:12px;text-decoration:none;white-space:nowrap}
@@ -91,7 +91,8 @@ DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='se
  const t=c.time?(yt&&sec!=null?`<a class="ts" target="_blank" rel="noopener" data-s="${sec}" href="${short(sec)}">▶ ${esc(c.time)}</a>`:`<span class="ts">${esc(c.time)}</span>`):'';
  el.innerHTML=`<div class="in"><div class="band" style="background:linear-gradient(135deg,${c.colors||'#1e3a8a,#38bdf8'})"><b>${esc(c.band)}</b>${t}</div><div class="body"><div class="num">Point ${i+1} of ${N}</div><h2>${esc(c.headline)}</h2><p class="sum">${esc(c.summary)}</p><div class="btns">${(c.buttons||[]).map((b,j)=>`<button class="ib${b.you?' you':''}" data-i="${i}" data-j="${j}"><span>i</span>${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>`).join('')}</div><div class="info" hidden></div></div></div>`;
  $('cards').appendChild(el);});
-function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i}
+function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i;
+ const top=$('cards').getBoundingClientRect().top,d=$('dock'),min=d&&!d.hidden?d.getBoundingClientRect().bottom+8:0;if(top<min)window.scrollBy(0,top-min)}
 const go=d=>{const n=cur+d;if(n>=0&&n<N)show(n)};
 $('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
 $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)return;const card=b.closest('.card'),box=card.querySelector('.info'),x=DATA.cards[b.dataset.i].buttons[b.dataset.j];
@@ -99,11 +100,11 @@ $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)re
  if(was){box.hidden=true;return}
  b.classList.add('act');box.className='info'+(x.you?' you':'');box.innerHTML='<span class="it"></span>';box.firstChild.textContent=x.you?DATA.youLabel:(x.type||'From the video');box.appendChild(document.createTextNode(x.text));box.hidden=false;box.scrollIntoView({block:'nearest',behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);});
-let x0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});$('cards').addEventListener('touchend',e=>{const d=x0-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1)});
+let x0=0,y0=0;$('cards').addEventListener('touchstart',e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});$('cards').addEventListener('touchend',e=>{const t=e.changedTouches[0],d=x0-t.clientX,dy=y0-t.clientY;if(Math.abs(d)>50&&Math.abs(d)>Math.abs(dy)*1.5)go(d>0?1:-1)});
 /* Docked mini player: youtube-nocookie embed above the deck; the deck stays usable. */
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 let pfr=null,pst=0;
-const fit=()=>document.documentElement.style.setProperty('--ph',$('dock').hidden?'0px':($('dock').offsetHeight+8)+'px');
+const fit=()=>document.documentElement.style.setProperty('--ph',$('dock').hidden?'0px':($('dock').offsetHeight+20)+'px');
 const label=(s,live)=>{$('pt').textContent=($('dock').classList.contains('min')?'▴ ':'▶ ')+(live||s?fmt(s):'From the start')};
 function fail(s){$('pv').innerHTML='<div class="pf">This video can\'t play here.<a class="yt" target="_blank" rel="noopener">▶ Open in YouTube</a></div>';$('pv').querySelector('a').href=short(s);pfr=null}
 function cmd(func,args){try{pfr.contentWindow.postMessage(JSON.stringify({event:'command',func,args:args||[]}),'*')}catch(e){}}

@@ -368,3 +368,70 @@ test("skill template is the same as the site template", async () => {
   const tpl = readFileSync(new URL("../src/template.html", import.meta.url), "utf8");
   assert.equal(sk.slice(sk.indexOf("```html\n") + 8, sk.lastIndexOf("```")).trimEnd(), tpl.trimEnd());
 });
+
+test("iPhone: long card with player open — scroll down, open i-buttons; vertical moves don't change cards", async (t) => {
+  const { createRequire } = await import("node:module");
+  let pw;
+  try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
+  const { decorateDeck } = await import("../dist/worker.js");
+  const d = validateDeck(goodDeck()).data; d.videoId = "dQw4w9WgXcQ";
+  const long = "This is a long sentence that keeps going so the card gets really tall on a phone. ";
+  d.cards[2].summary = long.repeat(5);
+  d.cards[2].buttons = [
+    { you: true, title: "For your van", text: ("• " + long + "\n").repeat(5) },
+    { title: "Definition", type: "Definition", text: long.repeat(3) },
+    { title: "Check this", type: "Check this", text: "Last gold button text." },
+  ];
+  const page = decorateDeck(renderDeck(d), d, "abcd1234", "https://x.dev", false);
+  const b = await pw.chromium.launch();
+  t.after(() => b.close());
+  const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
+  await p.route("https://x.dev/d/abcd1234", (r) => r.fulfill({ contentType: "text/html", body: page }));
+  await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body: "<body style=background:#000>" }));
+  await p.goto("https://x.dev/d/abcd1234");
+  const vh = p.viewportSize().height;
+  const touch = (dx, dy) => p.evaluate(([dx, dy]) => { const c = document.getElementById("cards"), at = (x, y) => [new Touch({ identifier: 1, target: c, clientX: x, clientY: y })];
+    c.dispatchEvent(new TouchEvent("touchstart", { touches: at(200, 400), changedTouches: at(200, 400) }));
+    c.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: at(200 + dx, 400 + dy) })); }, [dx, dy]);
+  const num = () => p.textContent(".card.on .num");
+
+  await p.locator(".card.on a.ts").tap();                 // open player on card 1
+  await p.tap("#bn"); await p.waitForTimeout(350); await p.tap("#bn"); await p.waitForTimeout(350);
+  assert.equal(await num(), "Point 3 of 7");
+  const dockH = (await p.locator("#dock").boundingBox()).height;
+
+  // The long card is taller than the space left, and the page can scroll to reach it all
+  const cardBox = await p.locator(".card.on .in").boundingBox();
+  assert.ok(cardBox.y + cardBox.height > vh, "card is taller than the screen (test is meaningful)");
+  const overflow = await p.evaluate(() => [getComputedStyle(document.documentElement).overflowY, getComputedStyle(document.body).overflowY, document.scrollingElement.scrollHeight > innerHeight]);
+  assert.deepEqual(overflow, ["visible", "visible", true], "page is scrollable");
+
+  // Vertical drags never change cards; clearly sideways ones do
+  await touch(-60, -300); await touch(70, 250); await touch(0, -400);
+  assert.equal(await num(), "Point 3 of 7", "vertical moves don't swipe");
+
+  // Scroll down like a finger would and reach every i-button
+  await p.mouse.wheel(0, 2000); await p.waitForTimeout(300);
+  assert.ok(await p.evaluate(() => scrollY) > 100, "page scrolled");
+  const dockNow = await p.locator("#dock").boundingBox();
+  assert.ok(dockNow.y >= -1 && dockNow.y < 20 && Math.abs(dockNow.height - dockH) < 2, "player stays docked at the top while scrolling");
+  for (const [i, expect] of [[0, /FOR YOUR VAN/i], [1, /Definition/i], [2, /Last gold button text/]]) {
+    const btn = p.locator(".card.on .ib").nth(i);
+    await btn.scrollIntoViewIfNeeded();
+    const r = await btn.boundingBox();
+    assert.ok(r.y >= dockNow.y + dockNow.height - 1 && r.y + r.height <= vh, `button ${i} visible below the player`);
+    assert.equal(await p.evaluate(([x, y]) => !!document.elementFromPoint(x, y).closest(".ib"), [r.x + r.width / 2, r.y + r.height / 2]), true, `button ${i} on top`);
+    await btn.tap();
+    assert.match(await p.textContent(".card.on .info"), expect);
+    const info = await p.locator(".card.on .info").boundingBox();
+    assert.ok(info.y + 10 < vh, "opened text is on screen");
+  }
+  assert.equal(await p.locator("#pv iframe").count(), 1, "player still open");
+
+  // Next card brings its top back into view below the player
+  await touch(-200, 20); await p.waitForTimeout(400);
+  assert.equal(await num(), "Point 4 of 7");
+  const top = (await p.locator(".card.on .in").boundingBox()).y;
+  const dk = await p.locator("#dock").boundingBox();
+  assert.ok(top >= dk.y + dk.height && top < vh / 2, "new card starts just below the player: " + top);
+});
