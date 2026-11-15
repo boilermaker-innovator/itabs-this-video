@@ -413,7 +413,7 @@ const yt=DATA.videoId?'https://www.youtube.com/watch?v='+DATA.videoId:'';if(yt)$
 let cur=0;const N=DATA.cards.length;
 DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='seg';$('prog').appendChild(s);
  const el=document.createElement('div');el.className='card';
- const t=c.time?(yt&&c.seconds?\`<a class="ts" target="_blank" rel="noopener" href="\${yt}&t=\${c.seconds}s">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
+ const t=c.time?(yt&&c.seconds?\`<a class="ts" target="_blank" rel="noopener" href="https://youtu.be/\${DATA.videoId}?t=\${Math.round(c.seconds)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
  el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,\${c.colors||'#1e3a8a,#38bdf8'})"><b>\${esc(c.band)}</b>\${t}</div><div class="body"><div class="num">Point \${i+1} of \${N}</div><h2>\${esc(c.headline)}</h2><p class="sum">\${esc(c.summary)}</p><div class="btns">\${(c.buttons||[]).map((b,j)=>\`<button class="ib\${b.you?' you':''}" data-i="\${i}" data-j="\${j}"><span>i</span>\${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>\`).join('')}</div><div class="info" hidden></div></div></div>\`;
  $('cards').insertBefore(el,$('nl'));});
 function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i}
