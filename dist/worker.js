@@ -48,6 +48,17 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .info .it{display:block;font-weight:700;font-size:13px;margin-bottom:4px;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
 .info.you .it{color:var(--bluedot)}
 .ib.act{outline:2px solid var(--fg);outline-offset:1px}
+.qdots{display:flex;gap:6px;margin:4px 0 10px}.qdots button{width:28px;height:28px;border-radius:50%;border:0;background:var(--raised);color:var(--muted);font:700 12px system-ui,sans-serif;cursor:pointer}
+.qdots .ok{background:#166534;color:#fff}.qdots .no{background:#7f1d1d;color:#fff}.qdots .cur{outline:2px solid var(--fg);outline-offset:1px}
+.qn{font-size:12px;color:var(--muted);font-weight:600}.qq{font-size:17px;margin:2px 0 6px}
+.qts{display:inline-block;background:#000a;color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;text-decoration:none;margin-bottom:8px}
+.qo{display:flex;flex-direction:column;gap:6px}
+.qa{display:flex;gap:8px;text-align:left;border:1px solid #ffffff1f;background:var(--raised);color:var(--fg);border-radius:12px;padding:10px 12px;font:500 14.5px system-ui,sans-serif;font-family:inherit;line-height:1.3;cursor:pointer}
+.qa b{color:var(--muted);flex-shrink:0}.qa:disabled{cursor:default}.qa.right{background:#14532d;border-color:#22c55e}.qa.wrong{background:#7f1d1d;border-color:#f87171}.qa.dim{opacity:.55}
+.qr{margin-top:10px;font-size:14px;padding:9px 12px;border-radius:10px;background:var(--raised);border-left:3px solid #22c55e}.qr.no{border-left-color:#f87171}
+.qgo{margin-top:10px;width:100%;border:0;border-radius:12px;padding:11px;background:var(--gold);color:#000;font:700 15px system-ui,sans-serif;font-family:inherit;cursor:pointer}
+.qscore{text-align:center;padding:6px 0 2px}.qscore b{display:block;font-size:30px;line-height:1.2}.qscore span{color:var(--muted);font-size:14px}
+.qnote{font-size:11.5px;color:var(--muted);margin-top:12px}
 .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 4px}
 .watch{background:#e11d1d;color:#fff;padding:7px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
 .arr button{width:36px;height:36px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:18px;margin-left:6px}
@@ -106,15 +117,43 @@ const yt=DATA.videoId?'https://www.youtube.com/watch?v='+DATA.videoId:'';if(yt)$
 const short=s=>'https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;
 const secs=c=>{let s=Number(c.seconds);if(!(s>0)&&c.time&&/^\\d+(:\\d{1,2}){1,2}$/.test(c.time))s=c.time.split(':').reduce((a,x)=>a*60+(+x),0);return Number.isFinite(s)&&s>=0?Math.round(s):null};
 let cur=0;const N=DATA.cards.length;
+const QZ=DATA.quiz&&Array.isArray(DATA.quiz.questions)&&DATA.quiz.questions.length?DATA.quiz:null,T=N+(QZ?1:0);
 DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='seg';$('prog').appendChild(s);
  const el=document.createElement('div');el.className='card';
  const sec=secs(c);
  const t=c.time?(yt&&sec!=null?\`<a class="ts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
  el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,\${c.colors||'#1e3a8a,#38bdf8'})"><b>\${esc(c.band)}</b>\${t}</div><div class="body"><div class="num">Point \${i+1} of \${N}</div><h2>\${esc(c.headline)}</h2><p class="sum">\${esc(c.summary)}</p><div class="btns">\${(c.buttons||[]).map((b,j)=>\`<button class="ib\${b.you?' you':''}" data-i="\${i}" data-j="\${j}"><span>i</span>\${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>\`).join('')}</div><div class="info" hidden></div></div></div>\`;
  $('cards').appendChild(el);});
+/* Quiz card (Study mode): only when DATA.quiz is present */
+const QL={en:['Quiz','Test yourself','Question','of','Next question \u2192','See my score','out of','Try again','Right!','Not quite.','Answer:','AI-made quiz. Check with your official course material.'],
+id:['Kuis','Uji dirimu','Pertanyaan','dari','Pertanyaan berikutnya \u2192','Lihat skor','dari','Coba lagi','Benar!','Kurang tepat.','Jawaban:','Kuis buatan AI. Cek dengan materi kursus resmimu.'],
+zh:['\u6D4B\u9A8C','\u81EA\u6211\u6D4B\u8BD5','\u95EE\u9898','/','\u4E0B\u4E00\u9898 \u2192','\u67E5\u770B\u5F97\u5206','/','\u518D\u8BD5\u4E00\u6B21','\u7B54\u5BF9\u4E86\uFF01','\u4E0D\u592A\u5BF9\u3002','\u7B54\u6848\uFF1A','AI \u751F\u6210\u7684\u6D4B\u9A8C\uFF0C\u8BF7\u4EE5\u5B98\u65B9\u8BFE\u7A0B\u8D44\u6599\u4E3A\u51C6\u3002'],
+vi:['C\xE2u \u0111\u1ED1','T\u1EF1 ki\u1EC3m tra','C\xE2u','/','C\xE2u ti\u1EBFp theo \u2192','Xem \u0111i\u1EC3m','/','L\xE0m l\u1EA1i','\u0110\xFAng r\u1ED3i!','Ch\u01B0a \u0111\xFAng.','\u0110\xE1p \xE1n:','C\xE2u \u0111\u1ED1 do AI t\u1EA1o. H\xE3y \u0111\u1ED1i chi\u1EBFu v\u1EDBi t\xE0i li\u1EC7u kh\xF3a h\u1ECDc ch\xEDnh th\u1EE9c.'],
+es:['Test','Ponte a prueba','Pregunta','de','Siguiente pregunta \u2192','Ver mi puntuaci\xF3n','de','Intentar de nuevo','\xA1Correcto!','No exactamente.','Respuesta:','Test hecho por IA. Compru\xE9balo con tu material oficial del curso.'],
+ar:['\u0627\u062E\u062A\u0628\u0627\u0631','\u0627\u062E\u062A\u0628\u0631 \u0646\u0641\u0633\u0643','\u0627\u0644\u0633\u0624\u0627\u0644','\u0645\u0646','\u0627\u0644\u0633\u0624\u0627\u0644 \u0627\u0644\u062A\u0627\u0644\u064A \u2190','\u0639\u0631\u0636 \u0627\u0644\u0646\u062A\u064A\u062C\u0629','\u0645\u0646','\u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649','\u0635\u062D\u064A\u062D!','\u0644\u064A\u0633 \u062A\u0645\u0627\u0645\u064B\u0627.','\u0627\u0644\u0625\u062C\u0627\u0628\u0629:','\u0627\u062E\u062A\u0628\u0627\u0631 \u0645\u0646 \u0625\u0639\u062F\u0627\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A. \u0631\u0627\u062C\u0639 \u0627\u0644\u0645\u0648\u0627\u062F \u0627\u0644\u0631\u0633\u0645\u064A\u0629 \u0644\u062F\u0648\u0631\u062A\u0643.']};
+if(QZ){const L=QL[DATA.lang]||QL.en,Qs=QZ.questions,n=Qs.length,s0=document.createElement('div');s0.className='seg';$('prog').appendChild(s0);
+ const el=document.createElement('div');el.className='card quiz';
+ el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><b>\u270F\uFE0F \${esc(L[0])}</b></div><div class="body"><div class="num">\${esc(L[1])} \xB7 \${n}</div><div class="qdots"></div><div class="qbox"></div><p class="qnote">\${esc(L[11])}</p></div></div>\`;
+ $('cards').appendChild(el);
+ const dots=el.querySelector('.qdots'),box=el.querySelector('.qbox');let order=[],ans=[],qi=0,scoreView=false;
+ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ function reset(){order=Qs.map(q=>shuffle(q.options.map((_,i)=>i)));ans=Qs.map(()=>null);qi=0;scoreView=false;draw()}
+ function draw(){dots.innerHTML=Qs.map((q,k)=>\`<button type="button" data-k="\${k}" class="\${ans[k]==null?'':ans[k]===q.answer?'ok':'no'}\${k===qi&&!scoreView?' cur':''}" aria-label="\${esc(L[2])} \${k+1}">\${k+1}</button>\`).join('');
+  if(scoreView){const sc=ans.filter((a,k)=>a===Qs[k].answer).length;
+   box.innerHTML=\`<div class="qscore"><b>\${sc} \${esc(L[6])} \${n}</b><span>\${sc===n?'\u{1F389}':sc>=n/2?'\u{1F44D}':'\u{1F4DA}'}</span></div><button type="button" class="qgo qagain">\${esc(L[7])}</button>\`;return}
+  const q=Qs[qi],a=ans[qi],sec=secs(q),t=q.time&&yt&&sec!=null?\`<a class="qts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(q.time)}</a>\`:'';
+  box.innerHTML=\`<div class="qn">\${esc(L[2])} \${qi+1} \${esc(L[3])} \${n}</div><h2 class="qq">\${esc(q.q)}</h2>\${t}<div class="qo">\${order[qi].map((oi,d)=>\`<button type="button" class="qa\${a==null?'':oi===q.answer?' right':oi===a?' wrong':' dim'}" data-o="\${oi}"\${a==null?'':' disabled'}><b>\${'ABCD'[d]}</b><span>\${esc(q.options[oi])}</span></button>\`).join('')}</div>\`+
+   (a==null?'':\`<p class="qr\${a===q.answer?'':' no'}">\${a===q.answer?'\u2713 '+esc(L[8]):'\u2717 '+esc(L[9])+' '+esc(L[10])+' '+esc(q.options[q.answer])+'.'} \${esc(q.why||'')}</p>\`+
+   \`<button type="button" class="qgo qnext">\${esc(qi<n-1?L[4]:L[5])}</button>\`)}
+ el.addEventListener('click',e=>{const o=e.target.closest('.qa'),d=e.target.closest('.qdots button');
+  if(o&&!o.disabled&&ans[qi]==null){ans[qi]=+o.dataset.o;draw();return}
+  if(d){qi=+d.dataset.k;scoreView=false;draw();return}
+  if(e.target.closest('.qnext')){const nx=ans.findIndex((a,k)=>a==null&&k>qi),any=ans.indexOf(null);if(nx>=0)qi=nx;else if(any>=0)qi=any;else scoreView=true;draw();return}
+  if(e.target.closest('.qagain'))reset()});
+ reset()}
 function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i;
  const top=$('cards').getBoundingClientRect().top,d=$('dock'),min=d&&!d.hidden?d.getBoundingClientRect().bottom+8:0;if(top<min)window.scrollBy(0,top-min)}
-const go=d=>{const n=cur+d;if(n>=0&&n<N)show(n)};
+const go=d=>{const n=cur+d;if(n>=0&&n<T)show(n)};
 $('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
 $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)return;const card=b.closest('.card'),box=card.querySelector('.info'),x=DATA.cards[b.dataset.i].buttons[b.dataset.j];
  const was=b.classList.contains('act');card.querySelectorAll('.ib').forEach(z=>z.classList.remove('act'));
@@ -148,7 +187,7 @@ window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)retu
   if(d.info.playerState===1)setPlaying(true);else if(d.info.playerState===2||d.info.playerState===0)setPlaying(false)}});
 $('px').onclick=stop;$('pp').onclick=playPause;$('pl').onclick=()=>setMode('listen');$('pe').onclick=()=>setMode('big');
 window.addEventListener('resize',fit);
-$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
+$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts,a.qts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
 $('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);
 <\/script></body></html>
@@ -180,6 +219,11 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .count{font-size:12px;color:var(--muted);text-align:right;margin-top:4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chips button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:16px;padding:6px 11px;font:500 13px inherit;font-family:inherit;cursor:pointer}
+.study{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:14px;font-weight:600}
+.study small{display:block;font-weight:400;color:var(--muted);font-size:12px}.study span{flex:1}
+.study input{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:var(--raised);position:relative;flex-shrink:0;margin:0;padding:0;border:0;cursor:pointer;transition:background .2s}
+.study input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.study input:checked{background:var(--gold)}.study input:checked::after{transform:translateX(18px)}
 .chips button:active{transform:scale(.97)}.chips button[aria-pressed=true]{border-color:var(--bluedot);background:#1e3a8a66}
 .count.over{color:var(--red)}
 .note{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
@@ -231,7 +275,8 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
    <label for="about" id="aboutLabel">Who's watching? <small>a short description</small></label>
    <textarea id="about" maxlength="300" placeholder="e.g. I run a coffee van in Perth" required></textarea>
    <div class="chips" id="chips" aria-label="Quick picks"><button type="button">Apprentice on a job site</button><button type="button">Busy manager</button><button type="button">Beginner</button><button type="button">Small business owner</button></div>
-   <div class="count" id="count">0 / 300</div></div>
+   <div class="count" id="count">0 / 300</div>
+   <label class="study" for="study"><span>\u{1F4DA} Study mode (for tests and exams)<small>Study tips + a 5-question quiz</small></span><input type="checkbox" id="study" role="switch"></label></div>
   <div><label for="lang">Language</label>
    <select id="lang">
     <option value="en" selected>English</option>
@@ -282,7 +327,10 @@ const SKILL=/*SKILL*/null;
 let mode='me';
 function setMode(m){mode=m;$('mMe').setAttribute('aria-pressed',m==='me');$('mOther').setAttribute('aria-pressed',m==='other');
  $('aboutLabel').innerHTML=m==='me'?"Who's watching? <small>a short description</small>":"Who's it for? <small>their name and what they're into</small>";
- $('about').placeholder=m==='me'?'e.g. I run a coffee van in Perth':'e.g. my mate Kristian, building a robot arm'}
+ setPlaceholder()}
+function setPlaceholder(){const st=$('study').checked;
+ $('about').placeholder=st?(mode==='me'?'e.g. Studying for my forklift ticket':'e.g. my apprentice Jake, studying for his forklift ticket'):(mode==='me'?'e.g. I run a coffee van in Perth':'e.g. my mate Kristian, building a robot arm')}
+$('study').addEventListener('change',setPlaceholder);
 $('mMe').onclick=()=>setMode('me');$('mOther').onclick=()=>setMode('other');
 const about=$('about'),count=$('count');
 const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300);
@@ -306,7 +354,7 @@ $('form').addEventListener('submit',async e=>{
  view('loading');startMsgs();
  let res,data;
  try{
-  res=await fetch('/api/make',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,about:a,lang,mode,transcript:useTr?tr:undefined})});
+  res=await fetch('/api/make',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,about:a,lang,mode,study:$('study').checked,transcript:useTr?tr:undefined})});
   data=await res.json().catch(()=>({error:'The server sent back something unexpected. Please try again.'}));
  }catch(x){data={error:'Connection lost. Check your internet and try again.'}}
  clearInterval(timer);
@@ -371,6 +419,22 @@ Never make up what the video says. If you don't have the transcript, ask for it.
 
 **Gold buttons (1 or 2 per card):** a definition, background on a person or thing, or why it matters.
 
+## Study mode (tests, tickets, exams, lectures)
+
+If the person says they're studying for a test, ticket, exam or lecture:
+- Set \`youLabel\` to "For your test", and title every blue button "For your test".
+- Blue buttons help them pass: what's likely to be tested, a simple way to remember it, and a common mistake to avoid. Short bullet points.
+- Add a \`quiz\` to DATA with exactly 5 multiple-choice questions, each with 3 or 4 answers. Use only facts actually said in the video. Never invent facts.
+  \`\`\`js
+  quiz: { questions: [
+    { q: "Question?", options: ["Answer A", "Answer B", "Answer C"], answer: 1,   // answer = number of the right option, counting from 0
+      why: "One short line on why, from the video.", time: "2:15", seconds: 135 }
+  ] }
+  \`\`\`
+- Mix up which option is correct. The deck also shuffles the answers each time.
+- Add \`lang: "en"\` (or id, zh, vi, es, ar) so the quiz buttons match the deck's language.
+- The template shows the quiz card after the last card, with the score at the end and the line "AI-made quiz. Check with your official course material."
+
 ## Step 4: Make the deck
 
 Fill in the template below. **Only change the DATA block.** Keep everything else exactly as it is, including the "Made with iTabs" line. Output the whole file as one HTML file so it can be previewed, saved and shared.
@@ -418,6 +482,17 @@ h2{font-size:19px;line-height:1.2;margin-bottom:6px}.sum{font-size:14.5px;color:
 .info .it{display:block;font-weight:700;font-size:13px;margin-bottom:4px;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
 .info.you .it{color:var(--bluedot)}
 .ib.act{outline:2px solid var(--fg);outline-offset:1px}
+.qdots{display:flex;gap:6px;margin:4px 0 10px}.qdots button{width:28px;height:28px;border-radius:50%;border:0;background:var(--raised);color:var(--muted);font:700 12px system-ui,sans-serif;cursor:pointer}
+.qdots .ok{background:#166534;color:#fff}.qdots .no{background:#7f1d1d;color:#fff}.qdots .cur{outline:2px solid var(--fg);outline-offset:1px}
+.qn{font-size:12px;color:var(--muted);font-weight:600}.qq{font-size:17px;margin:2px 0 6px}
+.qts{display:inline-block;background:#000a;color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;text-decoration:none;margin-bottom:8px}
+.qo{display:flex;flex-direction:column;gap:6px}
+.qa{display:flex;gap:8px;text-align:left;border:1px solid #ffffff1f;background:var(--raised);color:var(--fg);border-radius:12px;padding:10px 12px;font:500 14.5px system-ui,sans-serif;font-family:inherit;line-height:1.3;cursor:pointer}
+.qa b{color:var(--muted);flex-shrink:0}.qa:disabled{cursor:default}.qa.right{background:#14532d;border-color:#22c55e}.qa.wrong{background:#7f1d1d;border-color:#f87171}.qa.dim{opacity:.55}
+.qr{margin-top:10px;font-size:14px;padding:9px 12px;border-radius:10px;background:var(--raised);border-left:3px solid #22c55e}.qr.no{border-left-color:#f87171}
+.qgo{margin-top:10px;width:100%;border:0;border-radius:12px;padding:11px;background:var(--gold);color:#000;font:700 15px system-ui,sans-serif;font-family:inherit;cursor:pointer}
+.qscore{text-align:center;padding:6px 0 2px}.qscore b{display:block;font-size:30px;line-height:1.2}.qscore span{color:var(--muted);font-size:14px}
+.qnote{font-size:11.5px;color:var(--muted);margin-top:12px}
 .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 4px}
 .watch{background:#e11d1d;color:#fff;padding:7px 14px;border-radius:18px;text-decoration:none;font-weight:600;font-size:13px}
 .arr button{width:36px;height:36px;border-radius:50%;border:0;background:var(--raised);color:var(--fg);font-size:18px;margin-left:6px}
@@ -476,15 +551,43 @@ const yt=DATA.videoId?'https://www.youtube.com/watch?v='+DATA.videoId:'';if(yt)$
 const short=s=>'https://youtu.be/'+encodeURIComponent(DATA.videoId)+'?t='+s;
 const secs=c=>{let s=Number(c.seconds);if(!(s>0)&&c.time&&/^\\d+(:\\d{1,2}){1,2}$/.test(c.time))s=c.time.split(':').reduce((a,x)=>a*60+(+x),0);return Number.isFinite(s)&&s>=0?Math.round(s):null};
 let cur=0;const N=DATA.cards.length;
+const QZ=DATA.quiz&&Array.isArray(DATA.quiz.questions)&&DATA.quiz.questions.length?DATA.quiz:null,T=N+(QZ?1:0);
 DATA.cards.forEach((c,i)=>{const s=document.createElement('div');s.className='seg';$('prog').appendChild(s);
  const el=document.createElement('div');el.className='card';
  const sec=secs(c);
  const t=c.time?(yt&&sec!=null?\`<a class="ts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(c.time)}</a>\`:\`<span class="ts">\${esc(c.time)}</span>\`):'';
  el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,\${c.colors||'#1e3a8a,#38bdf8'})"><b>\${esc(c.band)}</b>\${t}</div><div class="body"><div class="num">Point \${i+1} of \${N}</div><h2>\${esc(c.headline)}</h2><p class="sum">\${esc(c.summary)}</p><div class="btns">\${(c.buttons||[]).map((b,j)=>\`<button class="ib\${b.you?' you':''}" data-i="\${i}" data-j="\${j}"><span>i</span>\${esc(b.title||(b.you?DATA.youLabel:'Info'))}</button>\`).join('')}</div><div class="info" hidden></div></div></div>\`;
  $('cards').appendChild(el);});
+/* Quiz card (Study mode): only when DATA.quiz is present */
+const QL={en:['Quiz','Test yourself','Question','of','Next question \u2192','See my score','out of','Try again','Right!','Not quite.','Answer:','AI-made quiz. Check with your official course material.'],
+id:['Kuis','Uji dirimu','Pertanyaan','dari','Pertanyaan berikutnya \u2192','Lihat skor','dari','Coba lagi','Benar!','Kurang tepat.','Jawaban:','Kuis buatan AI. Cek dengan materi kursus resmimu.'],
+zh:['\u6D4B\u9A8C','\u81EA\u6211\u6D4B\u8BD5','\u95EE\u9898','/','\u4E0B\u4E00\u9898 \u2192','\u67E5\u770B\u5F97\u5206','/','\u518D\u8BD5\u4E00\u6B21','\u7B54\u5BF9\u4E86\uFF01','\u4E0D\u592A\u5BF9\u3002','\u7B54\u6848\uFF1A','AI \u751F\u6210\u7684\u6D4B\u9A8C\uFF0C\u8BF7\u4EE5\u5B98\u65B9\u8BFE\u7A0B\u8D44\u6599\u4E3A\u51C6\u3002'],
+vi:['C\xE2u \u0111\u1ED1','T\u1EF1 ki\u1EC3m tra','C\xE2u','/','C\xE2u ti\u1EBFp theo \u2192','Xem \u0111i\u1EC3m','/','L\xE0m l\u1EA1i','\u0110\xFAng r\u1ED3i!','Ch\u01B0a \u0111\xFAng.','\u0110\xE1p \xE1n:','C\xE2u \u0111\u1ED1 do AI t\u1EA1o. H\xE3y \u0111\u1ED1i chi\u1EBFu v\u1EDBi t\xE0i li\u1EC7u kh\xF3a h\u1ECDc ch\xEDnh th\u1EE9c.'],
+es:['Test','Ponte a prueba','Pregunta','de','Siguiente pregunta \u2192','Ver mi puntuaci\xF3n','de','Intentar de nuevo','\xA1Correcto!','No exactamente.','Respuesta:','Test hecho por IA. Compru\xE9balo con tu material oficial del curso.'],
+ar:['\u0627\u062E\u062A\u0628\u0627\u0631','\u0627\u062E\u062A\u0628\u0631 \u0646\u0641\u0633\u0643','\u0627\u0644\u0633\u0624\u0627\u0644','\u0645\u0646','\u0627\u0644\u0633\u0624\u0627\u0644 \u0627\u0644\u062A\u0627\u0644\u064A \u2190','\u0639\u0631\u0636 \u0627\u0644\u0646\u062A\u064A\u062C\u0629','\u0645\u0646','\u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649','\u0635\u062D\u064A\u062D!','\u0644\u064A\u0633 \u062A\u0645\u0627\u0645\u064B\u0627.','\u0627\u0644\u0625\u062C\u0627\u0628\u0629:','\u0627\u062E\u062A\u0628\u0627\u0631 \u0645\u0646 \u0625\u0639\u062F\u0627\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A. \u0631\u0627\u062C\u0639 \u0627\u0644\u0645\u0648\u0627\u062F \u0627\u0644\u0631\u0633\u0645\u064A\u0629 \u0644\u062F\u0648\u0631\u062A\u0643.']};
+if(QZ){const L=QL[DATA.lang]||QL.en,Qs=QZ.questions,n=Qs.length,s0=document.createElement('div');s0.className='seg';$('prog').appendChild(s0);
+ const el=document.createElement('div');el.className='card quiz';
+ el.innerHTML=\`<div class="in"><div class="band" style="background:linear-gradient(135deg,#92400e,#f59e0b)"><b>\u270F\uFE0F \${esc(L[0])}</b></div><div class="body"><div class="num">\${esc(L[1])} \xB7 \${n}</div><div class="qdots"></div><div class="qbox"></div><p class="qnote">\${esc(L[11])}</p></div></div>\`;
+ $('cards').appendChild(el);
+ const dots=el.querySelector('.qdots'),box=el.querySelector('.qbox');let order=[],ans=[],qi=0,scoreView=false;
+ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ function reset(){order=Qs.map(q=>shuffle(q.options.map((_,i)=>i)));ans=Qs.map(()=>null);qi=0;scoreView=false;draw()}
+ function draw(){dots.innerHTML=Qs.map((q,k)=>\`<button type="button" data-k="\${k}" class="\${ans[k]==null?'':ans[k]===q.answer?'ok':'no'}\${k===qi&&!scoreView?' cur':''}" aria-label="\${esc(L[2])} \${k+1}">\${k+1}</button>\`).join('');
+  if(scoreView){const sc=ans.filter((a,k)=>a===Qs[k].answer).length;
+   box.innerHTML=\`<div class="qscore"><b>\${sc} \${esc(L[6])} \${n}</b><span>\${sc===n?'\u{1F389}':sc>=n/2?'\u{1F44D}':'\u{1F4DA}'}</span></div><button type="button" class="qgo qagain">\${esc(L[7])}</button>\`;return}
+  const q=Qs[qi],a=ans[qi],sec=secs(q),t=q.time&&yt&&sec!=null?\`<a class="qts" target="_blank" rel="noopener" data-s="\${sec}" href="\${short(sec)}">\u25B6 \${esc(q.time)}</a>\`:'';
+  box.innerHTML=\`<div class="qn">\${esc(L[2])} \${qi+1} \${esc(L[3])} \${n}</div><h2 class="qq">\${esc(q.q)}</h2>\${t}<div class="qo">\${order[qi].map((oi,d)=>\`<button type="button" class="qa\${a==null?'':oi===q.answer?' right':oi===a?' wrong':' dim'}" data-o="\${oi}"\${a==null?'':' disabled'}><b>\${'ABCD'[d]}</b><span>\${esc(q.options[oi])}</span></button>\`).join('')}</div>\`+
+   (a==null?'':\`<p class="qr\${a===q.answer?'':' no'}">\${a===q.answer?'\u2713 '+esc(L[8]):'\u2717 '+esc(L[9])+' '+esc(L[10])+' '+esc(q.options[q.answer])+'.'} \${esc(q.why||'')}</p>\`+
+   \`<button type="button" class="qgo qnext">\${esc(qi<n-1?L[4]:L[5])}</button>\`)}
+ el.addEventListener('click',e=>{const o=e.target.closest('.qa'),d=e.target.closest('.qdots button');
+  if(o&&!o.disabled&&ans[qi]==null){ans[qi]=+o.dataset.o;draw();return}
+  if(d){qi=+d.dataset.k;scoreView=false;draw();return}
+  if(e.target.closest('.qnext')){const nx=ans.findIndex((a,k)=>a==null&&k>qi),any=ans.indexOf(null);if(nx>=0)qi=nx;else if(any>=0)qi=any;else scoreView=true;draw();return}
+  if(e.target.closest('.qagain'))reset()});
+ reset()}
 function show(i){document.querySelectorAll('.card').forEach((c,k)=>{c.classList.toggle('on',k===i);c.classList.toggle('prev',k<i)});document.querySelectorAll('.seg').forEach((s,k)=>s.classList.toggle('on',k<=i));cur=i;
  const top=$('cards').getBoundingClientRect().top,d=$('dock'),min=d&&!d.hidden?d.getBoundingClientRect().bottom+8:0;if(top<min)window.scrollBy(0,top-min)}
-const go=d=>{const n=cur+d;if(n>=0&&n<N)show(n)};
+const go=d=>{const n=cur+d;if(n>=0&&n<T)show(n)};
 $('bp').onclick=()=>go(-1);$('bn').onclick=()=>go(1);
 $('cards').addEventListener('click',e=>{const b=e.target.closest('.ib');if(!b)return;const card=b.closest('.card'),box=card.querySelector('.info'),x=DATA.cards[b.dataset.i].buttons[b.dataset.j];
  const was=b.classList.contains('act');card.querySelectorAll('.ib').forEach(z=>z.classList.remove('act'));
@@ -518,7 +621,7 @@ window.addEventListener('message',e=>{if(!pfr||e.source!==pfr.contentWindow)retu
   if(d.info.playerState===1)setPlaying(true);else if(d.info.playerState===2||d.info.playerState===0)setPlaying(false)}});
 $('px').onclick=stop;$('pp').onclick=playPause;$('pl').onclick=()=>setMode('listen');$('pe').onclick=()=>setMode('big');
 window.addEventListener('resize',fit);
-$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
+$('cards').addEventListener('click',e=>{const a=e.target.closest('a.ts,a.qts');if(!a)return;e.preventDefault();play(+a.dataset.s)});
 $('watch').addEventListener('click',e=>{if(!DATA.videoId)return;e.preventDefault();play(0)});
 show(0);
 <\/script></body></html>
@@ -697,6 +800,7 @@ async function make(request, env) {
   if (about.length > LIMITS.maxAbout) return json({ error: `Please keep the description under ${LIMITS.maxAbout} characters.` }, 400);
   const lang = LANGS[body.lang] ? body.lang : "en";
   const mode = body.mode === "other" ? "other" : "me";
+  const study = body.study === true;
   const transcript = body.transcript ? String(body.transcript).trim().slice(0, LIMITS.maxTranscript) : "";
   if (body.transcript && transcript.length < 200) return json({ error: "That transcript looks too short. Paste the whole thing.", needTranscript: true }, 400);
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
@@ -719,8 +823,8 @@ async function make(request, env) {
   if (meta.seconds && meta.seconds > LIMITS.maxVideoSeconds)
     return json({ error: `That video is ${Math.round(meta.seconds / 60)} minutes long. Please pick one under 60 minutes.` }, 400);
   if (meta.isLive) return json({ error: "Live streams can't be used. Try a normal video." }, 400);
-  const job = { videoId, about, lang, transcript, meta, mode };
-  let result, attempts = 0, lastErr = "";
+  const job = { videoId, about, lang, transcript, meta, mode, study };
+  let result, rawQuiz, attempts = 0, lastErr = "";
   for (let i = 0; i < 2; i++) {
     attempts++;
     await bump(env, k.callsDay, 2 * 86400);
@@ -732,6 +836,7 @@ async function make(request, env) {
     const v = validateDeck(g.data);
     if (v.ok) {
       result = v.data;
+      rawQuiz = g.data.quiz;
       break;
     }
     lastErr = v.errors.slice(0, 12).join("\n");
@@ -741,13 +846,24 @@ async function make(request, env) {
   result.videoId = videoId;
   if (meta.title) result.videoTitle = meta.title;
   if (meta.channel) result.channel = meta.channel;
+  result.lang = lang;
+  if (study) {
+    result.study = true;
+    if (lang === "en") {
+      result.youLabel = "For your test";
+      for (const c of result.cards) c.buttons[0].title = "For your test";
+    }
+    const q = validateQuiz(rawQuiz, result.cards.length);
+    if (q.ok) result.quiz = q.data;
+    else console.log("Quiz dropped:", q.errors.slice(0, 6).join("; "));
+  }
   const id = randomId(8);
   await env.DECKS.put("deck:" + id, JSON.stringify(result), {
-    metadata: { created: now.toISOString(), videoId, lang, mode, source: transcript ? "transcript" : "video", title: String(result.videoTitle).slice(0, 120) }
+    metadata: { created: now.toISOString(), videoId, lang, mode, ...study ? { study: true, quiz: !!result.quiz } : {}, source: transcript ? "transcript" : "video", title: String(result.videoTitle).slice(0, 120) }
   });
   await bump(env, k.decksDay, 2 * 86400);
   await bump(env, k.decksIp, 7200);
-  return json({ id, path: "/d/" + id, attempts });
+  return json({ id, path: "/d/" + id, attempts, ...study ? { quiz: !!result.quiz } : {} });
 }
 var cachedModel = null;
 async function pickModel(env, force) {
@@ -872,7 +988,19 @@ Return ONE JSON object only, no markdown, with exactly this shape:
         { "title": string, "type": string, "text": string }        // then 1 or 2 of these gold buttons
       ]
     }
-  ]
+  ]${job.study ? `,
+  "quiz": {                       // Study mode: exactly 5 multiple-choice questions
+    "questions": [
+      {
+        "q": string,              // the question, short and clear
+        "options": [string],      // 3 or 4 possible answers, exactly one correct
+        "answer": string,         // the correct option, copied exactly from "options"
+        "why": string,            // one short sentence: why that answer is right, from the video
+        "time": string,           // timestamp where the video covers this, like "4:05", or "" if unsure
+        "seconds": number         // same timestamp in seconds, or 0
+      }
+    ]
+  }` : ""}
 }
 
 Rules:
@@ -886,7 +1014,15 @@ Rules:
 - Skip sponsor segments, ads, merch plugs and "like and subscribe" parts completely.
 - Only use timestamps you're confident about; otherwise time "" and seconds 0.
 - Summaries describe what the video actually says. Don't add facts that aren't in the video, except in "Context" buttons where you clearly give background.
-- Use "\\n" for line breaks inside button text.${previousError ? `
+- Use "\\n" for line breaks inside button text.${job.study ? `
+
+STUDY MODE: the viewer is studying for a test, ticket, exam or lecture.
+- "youLabel" is "For your test" (in ${lang}), and every blue button's title is "For your test" too.
+- Blue buttons help them pass: what is likely to be tested on this point, a simple way to remember it (a memory trick, rhyme or short checklist), and a common mistake to avoid. 2-4 short bullet points.
+- Add "quiz" with exactly 5 multiple-choice questions spread across the video, in ${lang}.
+- Every question and every correct answer must use ONLY facts actually said or shown in the video. Never invent facts, numbers or rules. If the video doesn't cover enough for 5 questions, ask about the main points it does cover.
+- Wrong options should be believable but clearly wrong according to the video.
+- "answer" must be copied exactly from "options". Give a timestamp for each question when you're confident.` : ""}${previousError ? `
 
 Your previous answer was not valid. Fix these problems and return the full JSON again:
 ${previousError}` : ""}`;
@@ -1002,11 +1138,13 @@ async function stats(request, env) {
   const localDay = (iso) => ymd(new Date(iso), tz);
   const todayCount = dated.filter((k) => localDay(k.metadata.created) === today).length;
   const weekCount = dated.filter((k) => localDay(k.metadata.created) >= weekStart).length;
+  const studyCount = dated.filter((k) => k.metadata.study).length;
   const recent = dated.sort((a, b) => a.metadata.created < b.metadata.created ? 1 : -1).slice(0, 20);
   const recentFb = await Promise.all(recent.map((k) => env.DECKS.get("fb:" + k.name.slice(5)).then((x) => JSON.parse(x || "{}"))));
   return html(statsPage(null, {
     today: todayCount,
     week: weekCount,
+    study: studyCount,
     tz,
     total: decks.length,
     up: fb.up || 0,
@@ -1046,20 +1184,49 @@ function statsPage(error, s) {
   const e = (v) => escAttr(v == null ? "" : v);
   const tile = (n, label) => `<div class="t"><b>${n}</b><span>${label}</span></div>`;
   const body = s ? `<div class="g3">${tile(s.today, "Today")}${tile(s.week, "This week")}${tile(s.total, "Total")}</div>
-<p class="tz">Decks made \xB7 ${e(s.tz)} time \xB7 week starts Monday</p>
+<p class="tz">Decks made \xB7 ${e(s.tz)} time \xB7 week starts Monday \xB7 \u{1F4DA} ${s.study} Study mode</p>
 <h2>Feedback</h2><div class="g">${tile(s.up, "\u{1F44D} Useful")}${tile(s.down, "\u{1F44E} Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
-<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} \xB7 ${e(r.lang)}${r.mode === "other" ? " \xB7 for someone else" : ""} \xB7 \u{1F44D}${r.fb.up || 0} \u{1F44E}${r.fb.down || 0} \u2705${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">\u25B6 youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
+<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} \xB7 ${e(r.lang)}${r.study ? ` \xB7 <b class="st">\u{1F4DA} Study${r.quiz ? " + quiz" : ""}</b>` : ""}${r.mode === "other" ? " \xB7 for someone else" : ""} \xB7 \u{1F44D}${r.fb.up || 0} \u{1F44E}${r.fb.down || 0} \u2705${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">\u25B6 youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
 <a class="btn" href="/stats">Lock</a>` : `<form method="post"><label for="pin">PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>${error ? `<p class="err">${e(error)}</p>` : ""}<button class="btn">Show stats</button></form>`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Stats | iTabs This Video</title>
 <style>:root{color-scheme:dark}*{box-sizing:border-box;margin:0}body{background:#0b0c0f;color:#f4f5f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
 .w{max-width:460px;margin:0 auto;padding:24px 16px 40px}h1{font-size:22px;margin-bottom:16px}h2{font-size:15px;margin:22px 0 8px;color:#a3a8b3}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.tz{color:#a3a8b3;font-size:12px;margin-top:6px}
-li a.yt{display:inline-block;margin-top:4px;color:#f87171;font-size:12.5px;font-weight:600}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
+.st{color:#fbbf24;font-weight:600}li a.yt{display:inline-block;margin-top:4px;color:#f87171;font-size:12.5px;font-weight:600}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
 ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}li{background:#16181d;border-radius:12px;padding:10px 12px}li a{color:#f4f5f7;font-weight:600;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li small{display:block;color:#a3a8b3;font-size:12px}
 label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}input{width:100%;background:#16181d;color:#f4f5f7;border:1px solid #2e323a;border-radius:12px;padding:13px 14px;font-size:16px}
 .btn{display:block;width:100%;margin-top:14px;background:#f59e0b;color:#000;border:0;border-radius:14px;padding:13px;font:700 16px system-ui,sans-serif;text-align:center;text-decoration:none}
 .err{color:#fecaca;font-size:14px;margin-top:8px}.m{color:#a3a8b3}</style></head>
 <body><div class="w"><h1>\u{1F4CA} iTabs This Video stats</h1>${body}</div></body></html>`;
+}
+function validateQuiz(qz) {
+  const errors = [];
+  const list = qz && Array.isArray(qz.questions) ? qz.questions : null;
+  if (!list) return { ok: false, errors: ["quiz.questions missing"] };
+  if (list.length !== 5) errors.push(`need 5 questions, got ${list.length}`);
+  const out = list.slice(0, 5).map((q, i) => {
+    const n = `Q${i + 1}`;
+    if (!q || !str(q.q, 300)) {
+      errors.push(`${n}: question missing`);
+      return null;
+    }
+    const opts = Array.isArray(q.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+    if (opts.length < 3 || opts.length > 4 || opts.some((o) => !o || o.length > 160)) errors.push(`${n}: needs 3 or 4 answers`);
+    if (new Set(opts.map((o) => o.toLowerCase())).size !== opts.length) errors.push(`${n}: duplicate answers`);
+    let answer = -1;
+    if (typeof q.answer === "number" && Number.isInteger(q.answer)) answer = q.answer;
+    else if (typeof q.answer === "string") answer = opts.findIndex((o) => o.toLowerCase() === q.answer.trim().toLowerCase());
+    if (answer < 0 || answer >= opts.length) errors.push(`${n}: answer must match one of the options`);
+    if (!str(q.why, 300)) errors.push(`${n}: "why" missing`);
+    let time = typeof q.time === "string" ? q.time.trim() : "";
+    if (time && !/^\d{1,2}(:\d{2}){1,2}$/.test(time)) time = "";
+    let seconds = Number.isFinite(+q.seconds) ? Math.max(0, Math.round(+q.seconds)) : 0;
+    if (!time) seconds = 0;
+    if (time && !seconds) seconds = time.split(":").reduce((a, x) => a * 60 + +x, 0);
+    return { q: String(q.q).trim(), options: opts, answer, why: String(q.why || "").trim(), time, seconds };
+  });
+  if (errors.length) return { ok: false, errors };
+  return { ok: true, data: { questions: out } };
 }
 function parseVideoId(input) {
   const s = input.trim();
@@ -1151,5 +1318,6 @@ export {
   renderHome,
   statsTimeZone,
   validateDeck,
+  validateQuiz,
   ymd
 };

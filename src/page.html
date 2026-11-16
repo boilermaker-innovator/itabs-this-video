@@ -23,6 +23,11 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
 .count{font-size:12px;color:var(--muted);text-align:right;margin-top:4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chips button{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:16px;padding:6px 11px;font:500 13px inherit;font-family:inherit;cursor:pointer}
+.study{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:pointer;font-size:14px;font-weight:600}
+.study small{display:block;font-weight:400;color:var(--muted);font-size:12px}.study span{flex:1}
+.study input{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:13px;background:var(--raised);position:relative;flex-shrink:0;margin:0;padding:0;border:0;cursor:pointer;transition:background .2s}
+.study input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.study input:checked{background:var(--gold)}.study input:checked::after{transform:translateX(18px)}
 .chips button:active{transform:scale(.97)}.chips button[aria-pressed=true]{border-color:var(--bluedot);background:#1e3a8a66}
 .count.over{color:var(--red)}
 .note{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
@@ -74,7 +79,8 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
    <label for="about" id="aboutLabel">Who's watching? <small>a short description</small></label>
    <textarea id="about" maxlength="300" placeholder="e.g. I run a coffee van in Perth" required></textarea>
    <div class="chips" id="chips" aria-label="Quick picks"><button type="button">Apprentice on a job site</button><button type="button">Busy manager</button><button type="button">Beginner</button><button type="button">Small business owner</button></div>
-   <div class="count" id="count">0 / 300</div></div>
+   <div class="count" id="count">0 / 300</div>
+   <label class="study" for="study"><span>📚 Study mode (for tests and exams)<small>Study tips + a 5-question quiz</small></span><input type="checkbox" id="study" role="switch"></label></div>
   <div><label for="lang">Language</label>
    <select id="lang">
     <option value="en" selected>English</option>
@@ -125,7 +131,10 @@ const SKILL=/*SKILL*/null;
 let mode='me';
 function setMode(m){mode=m;$('mMe').setAttribute('aria-pressed',m==='me');$('mOther').setAttribute('aria-pressed',m==='other');
  $('aboutLabel').innerHTML=m==='me'?"Who's watching? <small>a short description</small>":"Who's it for? <small>their name and what they're into</small>";
- $('about').placeholder=m==='me'?'e.g. I run a coffee van in Perth':'e.g. my mate Kristian, building a robot arm'}
+ setPlaceholder()}
+function setPlaceholder(){const st=$('study').checked;
+ $('about').placeholder=st?(mode==='me'?'e.g. Studying for my forklift ticket':'e.g. my apprentice Jake, studying for his forklift ticket'):(mode==='me'?'e.g. I run a coffee van in Perth':'e.g. my mate Kristian, building a robot arm')}
+$('study').addEventListener('change',setPlaceholder);
 $('mMe').onclick=()=>setMode('me');$('mOther').onclick=()=>setMode('other');
 const about=$('about'),count=$('count');
 const upd=()=>{count.textContent=about.value.length+' / 300';count.classList.toggle('over',about.value.length>=300);
@@ -149,7 +158,7 @@ $('form').addEventListener('submit',async e=>{
  view('loading');startMsgs();
  let res,data;
  try{
-  res=await fetch('/api/make',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,about:a,lang,mode,transcript:useTr?tr:undefined})});
+  res=await fetch('/api/make',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,about:a,lang,mode,study:$('study').checked,transcript:useTr?tr:undefined})});
   data=await res.json().catch(()=>({error:'The server sent back something unexpected. Please try again.'}));
  }catch(x){data={error:'Connection lost. Check your internet and try again.'}}
  clearInterval(timer);

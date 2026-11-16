@@ -186,6 +186,7 @@ async function make(request, env) {
   if (about.length > LIMITS.maxAbout) return json({ error: `Please keep the description under ${LIMITS.maxAbout} characters.` }, 400);
   const lang = LANGS[body.lang] ? body.lang : "en";
   const mode = body.mode === "other" ? "other" : "me";
+  const study = body.study === true;
   const transcript = body.transcript ? String(body.transcript).trim().slice(0, LIMITS.maxTranscript) : "";
   if (body.transcript && transcript.length < 200) return json({ error: "That transcript looks too short. Paste the whole thing.", needTranscript: true }, 400);
 
@@ -211,8 +212,8 @@ async function make(request, env) {
     return json({ error: `That video is ${Math.round(meta.seconds / 60)} minutes long. Please pick one under 60 minutes.` }, 400);
   if (meta.isLive) return json({ error: "Live streams can't be used. Try a normal video." }, 400);
 
-  const job = { videoId, about, lang, transcript, meta, mode };
-  let result, attempts = 0, lastErr = "";
+  const job = { videoId, about, lang, transcript, meta, mode, study };
+  let result, rawQuiz, attempts = 0, lastErr = "";
   for (let i = 0; i < 2; i++) {   // first try + one retry if the JSON is invalid
     attempts++;
     await bump(env, k.callsDay, 2 * 86400); await bump(env, k.callsIp, 7200);
@@ -221,7 +222,7 @@ async function make(request, env) {
     if (!transcript && g.durationSeconds > LIMITS.maxVideoSeconds)
       return json({ error: "That video is over 60 minutes. Please pick a shorter one." }, 400);
     const v = validateDeck(g.data);
-    if (v.ok) { result = v.data; break; }
+    if (v.ok) { result = v.data; rawQuiz = g.data.quiz; break; }
     lastErr = v.errors.slice(0, 12).join("\n");
     console.log("Invalid deck JSON:", lastErr);
   }
@@ -231,13 +232,24 @@ async function make(request, env) {
   result.videoId = videoId;
   if (meta.title) result.videoTitle = meta.title;
   if (meta.channel) result.channel = meta.channel;
+  result.lang = lang;
+  if (study) {
+    result.study = true;
+    if (lang === "en") {          // keep the label exact in English
+      result.youLabel = "For your test";
+      for (const c of result.cards) c.buttons[0].title = "For your test";
+    }
+    // A broken quiz is dropped (deck saved without it) rather than shown broken.
+    const q = validateQuiz(rawQuiz, result.cards.length);
+    if (q.ok) result.quiz = q.data; else console.log("Quiz dropped:", q.errors.slice(0, 6).join("; "));
+  }
 
   const id = randomId(8);
   await env.DECKS.put("deck:" + id, JSON.stringify(result), {
-    metadata: { created: now.toISOString(), videoId, lang, mode, source: transcript ? "transcript" : "video", title: String(result.videoTitle).slice(0, 120) },
+    metadata: { created: now.toISOString(), videoId, lang, mode, ...(study ? { study: true, quiz: !!result.quiz } : {}), source: transcript ? "transcript" : "video", title: String(result.videoTitle).slice(0, 120) },
   });
   await bump(env, k.decksDay, 2 * 86400); await bump(env, k.decksIp, 7200);
-  return json({ id, path: "/d/" + id, attempts });
+  return json({ id, path: "/d/" + id, attempts, ...(study ? { quiz: !!result.quiz } : {}) });
 }
 
 /* ---------------- Gemini ---------------- */
@@ -369,7 +381,19 @@ Return ONE JSON object only, no markdown, with exactly this shape:
         { "title": string, "type": string, "text": string }        // then 1 or 2 of these gold buttons
       ]
     }
-  ]
+  ]${job.study ? `,
+  "quiz": {                       // Study mode: exactly 5 multiple-choice questions
+    "questions": [
+      {
+        "q": string,              // the question, short and clear
+        "options": [string],      // 3 or 4 possible answers, exactly one correct
+        "answer": string,         // the correct option, copied exactly from "options"
+        "why": string,            // one short sentence: why that answer is right, from the video
+        "time": string,           // timestamp where the video covers this, like "4:05", or "" if unsure
+        "seconds": number         // same timestamp in seconds, or 0
+      }
+    ]
+  }` : ""}
 }
 
 Rules:
@@ -383,7 +407,15 @@ Rules:
 - Skip sponsor segments, ads, merch plugs and "like and subscribe" parts completely.
 - Only use timestamps you're confident about; otherwise time "" and seconds 0.
 - Summaries describe what the video actually says. Don't add facts that aren't in the video, except in "Context" buttons where you clearly give background.
-- Use "\\n" for line breaks inside button text.${previousError ? `
+- Use "\\n" for line breaks inside button text.${job.study ? `
+
+STUDY MODE: the viewer is studying for a test, ticket, exam or lecture.
+- "youLabel" is "For your test" (in ${lang}), and every blue button's title is "For your test" too.
+- Blue buttons help them pass: what is likely to be tested on this point, a simple way to remember it (a memory trick, rhyme or short checklist), and a common mistake to avoid. 2-4 short bullet points.
+- Add "quiz" with exactly 5 multiple-choice questions spread across the video, in ${lang}.
+- Every question and every correct answer must use ONLY facts actually said or shown in the video. Never invent facts, numbers or rules. If the video doesn't cover enough for 5 questions, ask about the main points it does cover.
+- Wrong options should be believable but clearly wrong according to the video.
+- "answer" must be copied exactly from "options". Give a timestamp for each question when you're confident.` : ""}${previousError ? `
 
 Your previous answer was not valid. Fix these problems and return the full JSON again:
 ${previousError}` : ""}`;
@@ -506,12 +538,13 @@ async function stats(request, env) {
   const localDay = (iso) => ymd(new Date(iso), tz);
   const todayCount = dated.filter((k) => localDay(k.metadata.created) === today).length;
   const weekCount = dated.filter((k) => localDay(k.metadata.created) >= weekStart).length;
+  const studyCount = dated.filter((k) => k.metadata.study).length;
   const recent = dated
     .sort((a, b) => (a.metadata.created < b.metadata.created ? 1 : -1))
     .slice(0, 20);
   const recentFb = await Promise.all(recent.map((k) => env.DECKS.get("fb:" + k.name.slice(5)).then((x) => JSON.parse(x || "{}"))));
   return html(statsPage(null, {
-    today: todayCount, week: weekCount, tz, total: decks.length, up: fb.up || 0, down: fb.down || 0, yes: fb.yes || 0, notyet: fb.notyet || 0,
+    today: todayCount, week: weekCount, study: studyCount, tz, total: decks.length, up: fb.up || 0, down: fb.down || 0, yes: fb.yes || 0, notyet: fb.notyet || 0,
     recent: recent.map((k, i) => ({ id: k.name.slice(5), ...k.metadata, fb: recentFb[i] })),
   }), 200, noStore);
 }
@@ -544,21 +577,50 @@ function statsPage(error, s) {
   const tile = (n, label) => `<div class="t"><b>${n}</b><span>${label}</span></div>`;
   const body = s
     ? `<div class="g3">${tile(s.today, "Today")}${tile(s.week, "This week")}${tile(s.total, "Total")}</div>
-<p class="tz">Decks made · ${e(s.tz)} time · week starts Monday</p>
+<p class="tz">Decks made · ${e(s.tz)} time · week starts Monday · 📚 ${s.study} Study mode</p>
 <h2>Feedback</h2><div class="g">${tile(s.up, "👍 Useful")}${tile(s.down, "👎 Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
-<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} · ${e(r.lang)}${r.mode === "other" ? " · for someone else" : ""} · 👍${r.fb.up || 0} 👎${r.fb.down || 0} ✅${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">▶ youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
+<h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} · ${e(r.lang)}${r.study ? ` · <b class="st">📚 Study${r.quiz ? " + quiz" : ""}</b>` : ""}${r.mode === "other" ? " · for someone else" : ""} · 👍${r.fb.up || 0} 👎${r.fb.down || 0} ✅${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">▶ youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
 <a class="btn" href="/stats">Lock</a>`
     : `<form method="post"><label for="pin">PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>${error ? `<p class="err">${e(error)}</p>` : ""}<button class="btn">Show stats</button></form>`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Stats | iTabs This Video</title>
 <style>:root{color-scheme:dark}*{box-sizing:border-box;margin:0}body{background:#0b0c0f;color:#f4f5f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
 .w{max-width:460px;margin:0 auto;padding:24px 16px 40px}h1{font-size:22px;margin-bottom:16px}h2{font-size:15px;margin:22px 0 8px;color:#a3a8b3}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.tz{color:#a3a8b3;font-size:12px;margin-top:6px}
-li a.yt{display:inline-block;margin-top:4px;color:#f87171;font-size:12.5px;font-weight:600}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
+.st{color:#fbbf24;font-weight:600}li a.yt{display:inline-block;margin-top:4px;color:#f87171;font-size:12.5px;font-weight:600}.t{background:#16181d;border-radius:14px;padding:12px 14px}.t b{display:block;font-size:26px}.t span{font-size:12.5px;color:#a3a8b3}
 ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}li{background:#16181d;border-radius:12px;padding:10px 12px}li a{color:#f4f5f7;font-weight:600;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li small{display:block;color:#a3a8b3;font-size:12px}
 label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}input{width:100%;background:#16181d;color:#f4f5f7;border:1px solid #2e323a;border-radius:12px;padding:13px 14px;font-size:16px}
 .btn{display:block;width:100%;margin-top:14px;background:#f59e0b;color:#000;border:0;border-radius:14px;padding:13px;font:700 16px system-ui,sans-serif;text-align:center;text-decoration:none}
 .err{color:#fecaca;font-size:14px;margin-top:8px}.m{color:#a3a8b3}</style></head>
 <body><div class="w"><h1>📊 iTabs This Video stats</h1>${body}</div></body></html>`;
+}
+
+/* ---------------- quiz (Study mode) ---------------- */
+
+export function validateQuiz(qz) {
+  const errors = [];
+  const list = qz && Array.isArray(qz.questions) ? qz.questions : null;
+  if (!list) return { ok: false, errors: ["quiz.questions missing"] };
+  if (list.length !== 5) errors.push(`need 5 questions, got ${list.length}`);
+  const out = list.slice(0, 5).map((q, i) => {
+    const n = `Q${i + 1}`;
+    if (!q || !str(q.q, 300)) { errors.push(`${n}: question missing`); return null; }
+    const opts = Array.isArray(q.options) ? q.options.map((o) => String(o ?? "").trim()) : [];
+    if (opts.length < 3 || opts.length > 4 || opts.some((o) => !o || o.length > 160)) errors.push(`${n}: needs 3 or 4 answers`);
+    if (new Set(opts.map((o) => o.toLowerCase())).size !== opts.length) errors.push(`${n}: duplicate answers`);
+    let answer = -1;
+    if (typeof q.answer === "number" && Number.isInteger(q.answer)) answer = q.answer;
+    else if (typeof q.answer === "string") answer = opts.findIndex((o) => o.toLowerCase() === q.answer.trim().toLowerCase());
+    if (answer < 0 || answer >= opts.length) errors.push(`${n}: answer must match one of the options`);
+    if (!str(q.why, 300)) errors.push(`${n}: "why" missing`);
+    let time = typeof q.time === "string" ? q.time.trim() : "";
+    if (time && !/^\d{1,2}(:\d{2}){1,2}$/.test(time)) time = "";
+    let seconds = Number.isFinite(+q.seconds) ? Math.max(0, Math.round(+q.seconds)) : 0;
+    if (!time) seconds = 0;
+    if (time && !seconds) seconds = time.split(":").reduce((a, x) => a * 60 + +x, 0);
+    return { q: String(q.q).trim(), options: opts, answer, why: String(q.why || "").trim(), time, seconds };
+  });
+  if (errors.length) return { ok: false, errors };
+  return { ok: true, data: { questions: out } };
 }
 
 /* ---------------- YouTube helpers ---------------- */

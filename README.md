@@ -130,6 +130,7 @@ Old workers.dev links keep working.
 | Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
 | Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
 | Make your own | A link in every deck footer, back to the main page. |
+| Study mode | A switch under "Who's watching?". Blue buttons become "For your test": what's likely to be tested, how to remember it, and common mistakes. After the last card comes a 5-question quiz built only from facts in the video: shuffled answers, instant right/wrong with a reason, ▶ timestamps, a score and Try again. If the AI's quiz is missing or broken, the deck is saved without it. Shown in /stats with 📚. |
 | Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a player pinned at the top, at that second, and the deck stays fully usable. Two sizes: **Big**, and **🎧 Listen**, a slim strip with a small visible video, the time, play/pause, ⤢ expand and ✕. The size you pick is remembered, and other timestamps seek the same player without changing it. If the creator blocks embedding, an **Open in YouTube** button shows instead. The skill uses the same template. |
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |

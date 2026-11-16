@@ -1,7 +1,7 @@
 // Offline tests: run the real worker with in-memory KV and a scripted Gemini/YouTube.
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { validateDeck, parseVideoId, renderDeck } from "../dist/worker.js";
+import worker, { validateDeck, validateQuiz, parseVideoId, renderDeck } from "../dist/worker.js";
 
 function memKV() {
   const m = new Map();
@@ -531,4 +531,168 @@ test("stats: today / this week / total counted in local time from saved decks", 
   assert.ok(html.includes(`<b>${expWeek}</b><span>This week`), "week " + expWeek);
   assert.ok(html.includes(`<b>6</b><span>Total`));
   assert.equal((html.match(/youtu\.be\/abcdefghijk"/g) || []).length, 6);
+});
+
+const quizOf = (n = 5) => ({ questions: Array.from({ length: n }, (_, i) => ({
+  q: `Question ${i + 1} about the video?`, options: [`Right ${i + 1}`, `Wrong A${i + 1}`, `Wrong B${i + 1}`, `Wrong C${i + 1}`].slice(0, i % 2 ? 3 : 4),
+  answer: `Right ${i + 1}`, why: `Because the video says so (${i + 1}).`, time: `${i + 1}:30`, seconds: (i + 1) * 60 + 30 })) });
+
+test("Study mode: prompt, 'For your test' label, quiz saved; normal decks unchanged", async () => {
+  const e = env();
+  geminiQueue.push({ ...goodDeck(), quiz: quizOf() });
+  let r = await post(e, { ...base, study: true }); let j = await r.json();
+  assert.equal(r.status, 200, JSON.stringify(j)); assert.equal(j.quiz, true);
+  const prompt = JSON.parse(calls.filter((c) => c.url.includes(":generateContent")).at(-1).body).contents[0].parts.at(-1).text;
+  assert.match(prompt, /STUDY MODE/); assert.match(prompt, /"quiz"/); assert.match(prompt, /ONLY facts actually said/);
+  const saved = JSON.parse(await e.DECKS.get("deck:" + j.id));
+  assert.equal(saved.study, true); assert.equal(saved.youLabel, "For your test");
+  assert.ok(saved.cards.every((c) => c.buttons[0].title === "For your test"));
+  assert.equal(saved.quiz.questions.length, 5);
+  assert.deepEqual(saved.quiz.questions.map((q) => q.answer), [0, 0, 0, 0, 0]);
+  assert.equal(e.DECKS.m.get("deck:" + j.id).o.metadata.study, true);
+
+  // Normal deck: no study text in the prompt, no quiz saved even if the AI sends one
+  geminiQueue.push({ ...goodDeck(), quiz: quizOf() });
+  r = await post(e, base, "2.2.2.2"); j = await r.json();
+  const p2 = JSON.parse(calls.filter((c) => c.url.includes(":generateContent")).at(-1).body).contents[0].parts.at(-1).text;
+  assert.ok(!/STUDY MODE|"quiz"/.test(p2), "normal prompt unchanged");
+  const s2 = JSON.parse(await e.DECKS.get("deck:" + j.id));
+  assert.equal(s2.quiz, undefined); assert.equal(s2.study, undefined); assert.equal(s2.youLabel, "For your van");
+});
+
+test("Study mode: a missing or broken quiz is dropped, deck still saved", async () => {
+  const bad = [
+    undefined,
+    quizOf(4),                                                                     // only 4 questions
+    { questions: quizOf().questions.map((q, i) => (i === 2 ? { ...q, answer: "Not an option" } : q)) },
+    { questions: quizOf().questions.map((q, i) => (i === 1 ? { ...q, options: ["Only", "Two"] } : q)) },
+    { questions: quizOf().questions.map((q, i) => (i === 4 ? { ...q, why: "" } : q)) },
+  ];
+  for (const [n, quiz] of bad.entries()) {
+    const e = env(); geminiQueue.push({ ...goodDeck(), quiz });
+    const j = await (await post(e, { ...base, study: true }, "3.3.3." + n)).json();
+    assert.ok(j.path, "deck saved"); assert.equal(j.quiz, false);
+    const saved = JSON.parse(await e.DECKS.get("deck:" + j.id));
+    assert.equal(saved.quiz, undefined); assert.equal(saved.study, true);
+  }
+  assert.equal(validateQuiz({ questions: quizOf().questions.map((q) => ({ ...q, answer: 2 })) }).ok, true, "numeric answer index accepted");
+});
+
+test("stats: Study mode decks are counted and labelled", async () => {
+  const e = { ...env(), STATS_PIN: "4321" };
+  geminiQueue.push({ ...goodDeck(), quiz: quizOf() }); await post(e, { ...base, study: true });
+  geminiQueue.push(goodDeck()); await post(e, base, "4.4.4.4");
+  const html = await (await worker.fetch(new Request("https://x.dev/stats", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "pin=4321" }), e)).text();
+  assert.match(html, /📚 1 Study mode/); assert.equal((html.match(/📚 Study \+ quiz/g) || []).length, 1);
+});
+
+test("iPhone: Study deck quiz — answer all 5, swipe away and back, quiz timestamp, score, try again", async (t) => {
+  const { createRequire } = await import("node:module");
+  let pw;
+  try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
+  const { decorateDeck } = await import("../dist/worker.js");
+  const e = env(); geminiQueue.push({ ...goodDeck(), quiz: quizOf() });
+  const { id } = await (await post(e, { ...base, study: true })).json();
+  const html = await (await get(e, `/d/${id}`)).text();
+  const plain = validateDeck(goodDeck()).data; plain.videoId = "dQw4w9WgXcQ";
+  const normalHtml = decorateDeck(renderDeck(plain), plain, "norm0001", "https://x.dev", false);
+  const b = await pw.chromium.launch();
+  t.after(() => b.close());
+  const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
+  const errors = []; p.on("pageerror", (x) => errors.push(x.message));
+  await p.route("https://x.dev/d/*", (r) => r.fulfill({ contentType: "text/html", body: r.request().url().endsWith("norm0001") ? normalHtml : html }));
+  await p.route("https://www.youtube-nocookie.com/**", (r) => r.fulfill({ contentType: "text/html", body: "<body style=background:#000>" }));
+  await p.route("https://x.dev/api/feedback", (r) => r.fulfill({ contentType: "application/json", body: "{}" }));
+
+  // Normal deck: no quiz card
+  await p.goto("https://x.dev/d/norm0001");
+  assert.equal(await p.locator(".card.quiz").count(), 0); assert.equal(await p.locator(".seg").count(), 7);
+
+  await p.goto(`https://x.dev/d/${id}`);
+  assert.equal(await p.locator(".seg").count(), 8, "7 cards + quiz");
+  for (let i = 0; i < 7; i++) { await p.tap("#bn"); await p.waitForTimeout(320); }
+  assert.ok(await p.locator(".card.quiz.on").isVisible(), "quiz is after the last content card");
+  const quiz = p.locator(".card.quiz");
+  assert.match(await quiz.textContent(), /AI-made quiz\. Check with your official course material\./);
+  // feedback comes after the quiz (below it, in the same last card)
+  const qb = await quiz.locator(".qbox").boundingBox(), fb = await quiz.locator(".fb").boundingBox();
+  assert.ok(fb.y > qb.y, "👍/👎 feedback sits after the quiz");
+
+  // Q1 right, Q2 wrong, then swipe back to a content card and return mid-quiz
+  const answer = async (right) => {
+    const opts = quiz.locator(".qa");
+    const texts = await opts.allTextContents();
+    const k = texts.findIndex((x) => (right ? /Right/ : /Wrong/).test(x));
+    await opts.nth(k).tap();
+    const fbText = await quiz.locator(".qr").textContent();
+    assert.match(fbText, right ? /^✓ Right!/ : /^✗ Not quite\. Answer: Right \d\./);
+    assert.match(fbText, /Because the video says so/);
+    assert.equal(await quiz.locator(".qa:not([disabled])").count(), 0, "answer locked");
+  };
+  await answer(true);
+  assert.equal(await quiz.locator(".qa.right").count(), 1);
+  await quiz.locator(".qnext").tap();
+  await answer(false);
+  assert.equal(await quiz.locator(".qa.wrong").count(), 1); assert.equal(await quiz.locator(".qa.right").count(), 1, "shows the right one too");
+
+  await p.tap("#bp"); await p.waitForTimeout(350); await p.tap("#bp"); await p.waitForTimeout(350);
+  assert.equal(await p.textContent(".card.on .num"), "Point 6 of 7");
+  await p.tap("#bn"); await p.waitForTimeout(350); await p.tap("#bn"); await p.waitForTimeout(350);
+  assert.match(await quiz.locator(".qn").textContent(), /Question 2 of 5/, "still on question 2");
+  assert.match(await quiz.locator(".qr").textContent(), /Not quite/, "answer kept after swiping away and back");
+  assert.deepEqual(await quiz.locator(".qdots button").evaluateAll((bs) => bs.map((b) => b.className.replace(" cur", ""))), ["ok", "no", "", "", ""]);
+
+  // Quiz timestamp plays that part in the docked player
+  await quiz.locator(".qnext").tap();
+  assert.equal(await quiz.locator(".qts").textContent(), "▶ 3:30");
+  await quiz.locator(".qts").tap();
+  assert.match(await p.locator("#pv iframe").getAttribute("src"), /start=210&/);
+  assert.ok(await p.locator(".card.quiz.on").isVisible(), "still on the quiz");
+
+  await answer(true); await quiz.locator(".qnext").tap();
+  await answer(true); await quiz.locator(".qnext").tap();
+  await answer(false);
+  assert.equal(await quiz.locator(".qnext").textContent(), "See my score");
+  await quiz.locator(".qnext").tap();
+  assert.equal(await quiz.locator(".qscore b").textContent(), "3 out of 5");
+
+  // Try again resets everything
+  await quiz.locator(".qagain").tap();
+  assert.match(await quiz.locator(".qn").textContent(), /Question 1 of 5/);
+  assert.equal(await quiz.locator(".qr").count(), 0);
+  assert.equal(await quiz.locator(".qdots .ok, .qdots .no").count(), 0);
+
+  // Shuffled: the right answer isn't always in the same place
+  const positions = new Set();
+  for (let i = 0; i < 6; i++) {
+    await p.reload();
+    const texts = await p.locator(".card.quiz .qa").allTextContents();
+    positions.add(texts.findIndex((x) => /Right/.test(x)));
+  }
+  assert.ok(positions.size > 1, "answer position varies: " + [...positions]);
+  assert.deepEqual(errors, []);
+});
+
+test("form: Study mode switch changes the example and is sent with the request", async (t) => {
+  const { createRequire } = await import("node:module");
+  let pw;
+  try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
+  const html = await (await get(env(), "/")).text();
+  const b = await pw.chromium.launch(); t.after(() => b.close());
+  const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
+  let sent = null;
+  await p.route("https://x.dev/", (r) => r.fulfill({ contentType: "text/html", body: html }));
+  await p.route("**/api/make", (r) => { sent = JSON.parse(r.request().postData()); r.fulfill({ contentType: "application/json", body: '{"id":"x","path":"/d/x"}' }); });
+  await p.goto("https://x.dev/");
+  assert.equal(await p.isChecked("#study"), false, "off by default");
+  assert.match(await p.textContent(".study"), /Study mode \(for tests and exams\)/);
+  await p.tap(".study");
+  assert.equal(await p.getAttribute("#about", "placeholder"), "e.g. Studying for my forklift ticket");
+  await p.tap("#mOther");
+  assert.match(await p.getAttribute("#about", "placeholder"), /apprentice.*forklift ticket/);
+  await p.tap("#mMe");
+  assert.equal(await p.getAttribute("#about", "placeholder"), "e.g. Studying for my forklift ticket");
+  await p.fill("#url", "https://youtu.be/dQw4w9WgXcQ"); await p.fill("#about", "Studying for my forklift ticket");
+  await p.tap("#go"); await p.waitForSelector("#done:not([hidden])");
+  assert.equal(sent.study, true); assert.equal(sent.mode, "me");
 });
