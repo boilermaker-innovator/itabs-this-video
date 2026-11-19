@@ -719,7 +719,9 @@ test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", asy
   assert.deepEqual([...new Uint8Array(await qr.arrayBuffer()).slice(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
   const skill = await get(env(), "/talk/skill");
   assert.match(skill.headers.get("content-disposition"), /filename="SKILL\.md"/);
-  assert.match(await skill.text(), /^---\nname: itabs-this-talk/);
+  const skillText = await skill.text();
+  assert.match(skillText, /^---\nname: itabs-this-talk/);
+  assert.match(skillText, /\{\{NOTES_CARDS\}\}[\s\S]*id="promptCopy"[\s\S]*\{\{CHECK_ITEMS\}\}/, "skill has the full-notes template");
   assert.equal((await get(env(), "/talk/nobody")).status, 404);
   assert.equal((await get(env(), "/skill.md")).headers.get("content-disposition"), 'attachment; filename="itabs-this-video-skill.md"', "video skill unchanged");
 });
