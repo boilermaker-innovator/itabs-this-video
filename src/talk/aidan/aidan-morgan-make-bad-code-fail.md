@@ -2,6 +2,8 @@
 
 **Aidan Morgan, Bankwest**
 
+For anyone using an AI agent to write code.
+
 *Talk notes, packaged by iTabs · itabs-this-video.jgwynne7.workers.dev/talk/aidan*
 
 > Notes compiled by Jon Gwynne from photos of the slides, so a few details may be slightly off.
@@ -17,7 +19,7 @@ When an AI agent writes code, don't rely on asking it nicely or reviewing everyt
 ## Key points
 
 1. **Check what you can measure.** Readable, tested, structured, safe. If you can measure it, don't ask for it.
-2. **Wire it into every loop, and lock it.** Hooks that exit 2, a required CI check, rules the agent can't edit.
+2. **Wire it into every loop, and lock it.** Hooks that exit 2, a required CI check, rules the agent can't edit. In Claude Code, a Stop hook that exits with code 2 stops the agent finishing and sends the error back to it to fix.
 3. **Ratchet, then grow it.** Baseline today, fail only on worse. Every repeated review comment becomes a house rule.
 4. **A green build is not the whole story.** Gates stop bad code, but they don't catch the wrong fix or keep your team understanding the system.
 
