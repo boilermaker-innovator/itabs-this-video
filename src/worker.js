@@ -3,6 +3,7 @@ import TEMPLATE from "./template.html";
 import PAGE from "./page.html";
 import SKILL from "./skill.md";
 import OG_PNG from "./og.png";
+import { talkRoute } from "./talk/talk.js";
 
 const LANGS = {
   en: "English",
@@ -43,6 +44,7 @@ export default {
       if (url.pathname === "/og.png") return new Response(OG_PNG, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
       if (url.pathname === "/stats" && (request.method === "GET" || request.method === "POST")) return await stats(request, env);
       if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
+      if (url.pathname.startsWith("/talk/")) { const t = talkRoute(request, url); if (t) return t; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
       console.error("Unhandled", err && err.stack || err);

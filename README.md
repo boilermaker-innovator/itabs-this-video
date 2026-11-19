@@ -134,6 +134,7 @@ Old workers.dev links keep working.
 | Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a player pinned at the top, at that second, and the deck stays fully usable. Two sizes: **Big**, and **🎧 Listen**, a slim strip with a small visible video, the time, play/pause, ⤢ expand and ✕. The size you pick is remembered, and other timestamps seek the same player without changing it. If the creator blocks embedding, an **Open in YouTube** button shows instead. The skill uses the same template. |
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
+| iTabs This Talk | Talk pages under `/talk`, kept apart from the video code in `src/talk/`. `/talk/aidan` is Aidan Morgan's "Make bad code fail" page (MD and QR code alongside), and `/talk/skill` downloads the iTabs This Talk skill. Copied from the itabs-this-talk repo. |
 
 The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.
 

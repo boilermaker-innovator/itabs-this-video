@@ -696,3 +696,27 @@ test("form: Study mode switch changes the example and is sent with the request",
   await p.tap("#go"); await p.waitForSelector("#done:not([hidden])");
   assert.equal(sent.study, true); assert.equal(sent.mode, "me");
 });
+
+test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", async () => {
+  const page = await get(env(), "/talk/aidan");
+  assert.equal(page.status, 200); assert.match(page.headers.get("content-type"), /text\/html/);
+  const html = await page.text();
+  assert.match(html, /Make bad code fail/); assert.match(html, /Made with iTabs/); assert.match(html, /0421 508 009/);
+  assert.match(html, /href="\/talk\/aidan\/aidan-morgan-make-bad-code-fail\.md"/);
+  assert.match(html, /fetch\('\/talk\/aidan\/aidan-morgan-make-bad-code-fail\.md'\)/);
+  assert.match(html, /href="\/talk\/skill" download/);
+  assert.match(html, /src="\/talk\/aidan\/qr-talk-itabs-aidan\.png"/);
+  assert.doesNotMatch(html, /talk\.itabs\.co/);
+  assert.equal((await get(env(), "/talk/aidan/")).status, 200, "trailing slash works too");
+  const md = await get(env(), "/talk/aidan/aidan-morgan-make-bad-code-fail.md");
+  assert.equal(md.status, 200); assert.match(md.headers.get("content-disposition"), /attachment/);
+  assert.match(await md.text(), /^# Quality gates for agents/);
+  const qr = await get(env(), "/talk/aidan/qr-talk-itabs-aidan.png");
+  assert.equal(qr.headers.get("content-type"), "image/png");
+  assert.deepEqual([...new Uint8Array(await qr.arrayBuffer()).slice(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
+  const skill = await get(env(), "/talk/skill");
+  assert.match(skill.headers.get("content-disposition"), /filename="SKILL\.md"/);
+  assert.match(await skill.text(), /^---\nname: itabs-this-talk/);
+  assert.equal((await get(env(), "/talk/nobody")).status, 404);
+  assert.equal((await get(env(), "/skill.md")).headers.get("content-disposition"), 'attachment; filename="itabs-this-video-skill.md"', "video skill unchanged");
+});
