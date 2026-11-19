@@ -742,9 +742,25 @@ test("talk: Rye's page, MD and QR are served under /talk/rye", async () => {
   assert.match(html, /class="cta">Want this done for your business\? Spruik/);
   assert.match(html, /href="\/talk\/rye\/rye-smith-getting-found-by-ai\.md"/); assert.match(html, /src="\/talk\/rye\/qr-talk-itabs-rye\.png"/);
   assert.match(html, /'itabs-talk-rye-checks'/);
-  assert.doesNotMatch(html, /\{\{|aidan/i);
+  assert.doesNotMatch(html, /\{\{/);
   const md = await get(env(), "/talk/rye/rye-smith-getting-found-by-ai.md");
   assert.match(md.headers.get("content-disposition"), /attachment/);
   assert.match(await md.text(), /^# Getting found by AI: how Spruik runs SEO with Claude\n/);
   assert.equal((await get(env(), "/talk/rye/qr-talk-itabs-rye.png")).headers.get("content-type"), "image/png");
+});
+
+test("talk: each meetup talk links to the others, above the footer", async () => {
+  for (const [slug, other, speaker, title] of [["aidan", "rye", "Rye Smith", "Getting found by AI: how Spruik runs SEO with Claude"], ["rye", "aidan", "Aidan Morgan", "Quality gates for agents: Make bad code fail"]]) {
+    const html = await (await get(env(), "/talk/" + slug)).text();
+    const card = html.match(/<section class="card more-talks">[\s\S]*?<\/section>/);
+    assert.ok(card, slug + " has the card");
+    assert.match(card[0], /More talks from this meetup/);
+    assert.match(card[0], new RegExp('href="/talk/' + other + '"'));
+    assert.ok(card[0].includes(speaker) && card[0].includes(title), slug + " shows speaker and title");
+    assert.doesNotMatch(card[0], new RegExp('href="/talk/' + slug + '"'), "doesn't link to itself");
+    assert.ok(html.indexOf("more-talks\">") < html.indexOf("<footer>"), "card is above the footer");
+    assert.equal((html.match(/more-talks/g) || []).length, 3, "card and its style added once");
+  }
+  const md = await (await get(env(), "/talk/rye/rye-smith-getting-found-by-ai.md")).text();
+  assert.doesNotMatch(md, /More talks/, "MD files stay exactly as written");
 });
