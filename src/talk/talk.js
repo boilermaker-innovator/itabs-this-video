@@ -2,6 +2,9 @@
 import AIDAN_PAGE from "./aidan/index.html";
 import AIDAN_MD from "./aidan/aidan-morgan-make-bad-code-fail.md";
 import AIDAN_QR from "./aidan/qr-talk-itabs-aidan.png";
+import RYE_PAGE from "./rye/index.html";
+import RYE_MD from "./rye/rye-smith-getting-found-by-ai.md";
+import RYE_QR from "./rye/qr-talk-itabs-rye.png";
 import TALK_SKILL from "./skill/SKILL.md";
 
 const BASE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "cache-control": "public, max-age=300" };
@@ -11,6 +14,9 @@ const FILES = {
   "/talk/aidan": { body: AIDAN_PAGE, headers: { "content-type": "text/html; charset=utf-8" } },
   "/talk/aidan/aidan-morgan-make-bad-code-fail.md": md(AIDAN_MD, "aidan-morgan-make-bad-code-fail.md"),
   "/talk/aidan/qr-talk-itabs-aidan.png": { body: AIDAN_QR, headers: { "content-type": "image/png" } },
+  "/talk/rye": { body: RYE_PAGE, headers: { "content-type": "text/html; charset=utf-8" } },
+  "/talk/rye/rye-smith-getting-found-by-ai.md": md(RYE_MD, "rye-smith-getting-found-by-ai.md"),
+  "/talk/rye/qr-talk-itabs-rye.png": { body: RYE_QR, headers: { "content-type": "image/png" } },
   "/talk/skill": md(TALK_SKILL, "SKILL.md"),
 };
 

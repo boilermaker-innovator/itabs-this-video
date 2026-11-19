@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting found by AI · Rye Smith</title>
+<meta name="description" content="Notes from Rye Smith's (Spruik) talk 'Getting found by AI: how Spruik runs SEO with Claude': your homework, key points, real numbers, and a prompt to apply it to your own business.">
+<style>
+  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#6c5ce7; --accent-soft:#a29bfe; --ok:#2ecc71; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif; min-height:100vh; display:flex; justify-content:center; padding:24px 16px; }
+  main { width:100%; max-width:430px; display:flex; flex-direction:column; gap:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:24px 20px; }
+  .tag { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-size:30px; line-height:1.15; margin:8px 0 6px; }
+  .by { color:var(--muted); }
+  .quote { margin-top:14px; font-size:18px; font-weight:600; }
+  .lead { margin-top:14px; color:var(--muted); font-size:15px; }
+  .box { margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(108,92,231,.14); border-left:3px solid var(--accent); font-size:15px; }
+  .box strong { color:var(--accent-soft); }
+  .note { margin-top:12px; font-size:13px; color:var(--muted); }
+  .buttons { display:flex; flex-direction:column; gap:10px; }
+  .btn { display:block; width:100%; padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); font:inherit; font-weight:700; text-align:center; text-decoration:none; cursor:pointer; }
+  .btn small { display:block; font-weight:400; font-size:13px; color:var(--muted); margin-top:2px; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); }
+  .btn.primary small { color:rgba(255,255,255,.8); }
+  .btn:active { transform:scale(.98); }
+  .btn.done { border-color:var(--ok); }
+  /* Talk content */
+  .card h2 { font-size:21px; line-height:1.25; margin-bottom:12px; }
+  .card h2 + .big { margin-top:0; }
+  .card p + p, .card p + ul, .card ul + p, .card table + p, .card p + table, .card .box + p, .card ul + .box { margin-top:12px; }
+  .big { font-size:18px; font-weight:700; }
+  .homework { border-color:var(--accent); }
+  .homework .tag { margin-bottom:6px; }
+  ol, ul { padding-left:20px; }
+  li + li { margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; }
+  td:first-child { font-weight:700; white-space:nowrap; }
+  .debt { display:flex; flex-direction:column; gap:10px; }
+  .debt div { padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid var(--line); font-size:15px; }
+  .prompt { margin-top:12px; background:#0a0a10; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .prompt pre { margin:0; padding:14px; max-height:340px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#d8d8e2; }
+  .prompt .btn { border:0; border-top:1px solid var(--line); border-radius:0; background:var(--accent); }
+  .prompt .btn.done { background:#1f7a46; }
+  .checks { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .checks li + li { margin-top:0; }
+  .check { display:flex; align-items:center; gap:12px; width:100%; padding:14px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); font:inherit; font-size:15px; text-align:left; cursor:pointer; }
+  .check .tick { flex:none; width:24px; height:24px; border-radius:7px; border:2px solid var(--muted); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:transparent; }
+  .check[aria-checked="true"] { border-color:var(--ok); }
+  .check[aria-checked="true"] .tick { background:var(--ok); border-color:var(--ok); color:#06210f; }
+  .progress { margin-top:12px; font-size:14px; color:var(--muted); text-align:center; }
+  .progress.all { color:var(--ok); font-weight:700; }
+  table.nums td:first-child { white-space:normal; font-weight:600; }
+  table.nums td:last-child, table.nums th:last-child { text-align:right; white-space:nowrap; padding-left:12px; font-variant-numeric:tabular-nums; }
+  table.nums tbody tr:nth-child(even) td { background:rgba(255,255,255,.03); }
+  .cta { text-align:center; padding:18px 20px; border-radius:16px; border:1px solid var(--accent); background:rgba(108,92,231,.14); font-size:16px; font-weight:600; }
+  .cta a { color:var(--accent-soft); }
+  .qr { text-align:center; }
+  .qr img { width:160px; height:160px; background:#fff; border-radius:12px; padding:6px; }
+  .qr p { overflow-wrap:anywhere; font-size:13px; color:var(--muted); margin-top:6px; }
+  footer { text-align:center; font-size:13px; color:var(--muted); line-height:1.8; padding-bottom:12px; }
+  footer strong { color:var(--text); }
+  footer a { color:inherit; }
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <div class="tag">iTabs This Talk · How Spruik runs SEO with Claude</div>
+    <h1>Getting found by AI</h1>
+    <div class="by">Rye Smith · Spruik</div>
+    <p class="box"><strong>Who it's for:</strong> small business owners and marketers who want customers to find them, including people asking ChatGPT, Perplexity and Google AI.</p>
+    <p class="quote">“AI is the new shopfront.”</p>
+    <p class="lead">Your homework, the key points, real numbers, and a ready-to-paste prompt so your own AI can help you apply them to your business.</p>
+    <p class="note">Notes compiled by Jon Gwynne from photos of the slides at the Perth Claude meetup, November 2026. I didn't get photos of every slide, so some parts are missing and a few details may be slightly off. Talk title is a working title. <strong>Rye, give your own slides to the "Make your own" skill and you'll get the full version.</strong></p>
+  </section>
+
+  <section class="buttons">
+    <a class="btn primary" href="/talk/rye/rye-smith-getting-found-by-ai.md" download>Download the MD<small>The talk notes as one file</small></a>
+    <button class="btn" id="copyBtn" type="button">Copy to my own AI<small>Copies the notes, paste into Claude, ChatGPT or similar</small></button>
+    <a class="btn" href="/talk/skill" download>Make your own<small>Get the iTabs This Talk skill and make a page for your talk</small></a>
+  </section>
+
+  <section class="card homework">
+    <div class="tag">Your homework</div>
+    <p class="big">Ask ChatGPT, Perplexity and Google AI three questions your customers would ask. Check whether your business is named, cited, or first.</p>
+    <p>You're done when you've written down where you stand, so you can ask the same questions again next month and compare.</p>
+  </section>
+
+  <section class="card">
+    <h2>The big idea</h2>
+    <p class="big">AI is the new shopfront.</p>
+    <p>People now ask AI assistants where to buy, who to call and what to use. If AI can read you and trusts you, it names you. If it can't, you're invisible, however good your Google ranking is.</p>
+  </section>
+
+  <section class="card">
+    <h2>Key points</h2>
+    <ol>
+      <li><strong>ChatGPT can beat Google.</strong> For Manager 11, ChatGPT sent more signups than Google search, with zero ad spend.</li>
+      <li><strong>Ask the buying questions every month.</strong> Track the same questions your customers ask AI, and see whether you're named.</li>
+      <li><strong>Check the tool before you trust it.</strong> Tools can be wrong, so check their numbers against Google's own data.</li>
+      <li><strong>Fix, don't just report.</strong> Claude finds the problem and ships the fix the same day.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Where the signups came from</h2>
+    <p>Manager 11 signups by source since launch, to 4 November 2026. Zero ad spend.</p>
+    <table class="nums">
+        <thead><tr><th>Source</th><th>Signups</th></tr></thead>
+        <tbody>
+          <tr><td>ChatGPT</td><td>1,361</td></tr>
+          <tr><td>Google search</td><td>1,061</td></tr>
+          <tr><td>Google Play</td><td>731</td></tr>
+          <tr><td>Bing</td><td>614</td></tr>
+          <tr><td>Direct / unknown</td><td>341</td></tr>
+          <tr><td>App Store</td><td>192</td></tr>
+        </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>How Claude runs the SEO: six steps</h2>
+    <ol>
+      <li><strong>Pull the data.</strong> Scripts Claude wrote pull Search Console, GA4, Google Ads, Meta and SEMrush.</li>
+      <li><strong>Read what APIs can't.</strong> Claude in Chrome reads Google's AI report, Shopify and Clarity.</li>
+      <li><strong>Track AI answers.</strong> The same buying questions, asked every month.</li>
+      <li><strong>Cross-check.</strong> Tool numbers get checked against Google's own data first.</li>
+      <li><strong>Fix, don't just report.</strong> The FAT Agent audits the site and Claude ships the fix that day.</li>
+      <li><strong>Write it up.</strong> A 42-slide monthly report, built in a day.</li>
+    </ol>
+    <p class="box"><strong>Why "check the tool" matters:</strong> on 5 November 2026, SEMrush said a ratchet-strap page ranked #1. Google's own data said 9 to 11. A live check said #7. So Claude checks the tool's number before it goes in the report.</p>
+    <p class="box"><strong>What the FAT Agent is:</strong> a free, open-source SEO and security auditor for Claude Code. It checks Google spam policies, SEO, security, accessibility and speed, then fixes what it finds. fatagent.app · GitHub: spruikco/fat-agent-skill</p>
+  </section>
+
+  <section class="card">
+    <h2>Real numbers: an Adelaide caravan dealer</h2>
+    <p>Budget halved, 9 keywords paused, 7 negative keywords added, bidding switched to maximise conversions. <strong>October: 128 leads for $903.</strong></p>
+    <table class="nums">
+        <thead><tr><th>Measure</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Cost per lead, August</td><td>$20.50</td></tr>
+          <tr><td>Cost per lead, September</td><td>$8.54</td></tr>
+          <tr><td>Cost per lead, October</td><td>$7.05</td></tr>
+          <tr><td>Google clicks vs October 2025</td><td>+128%</td></tr>
+          <tr><td>Average position</td><td>9.2, up from 19.3</td></tr>
+          <tr><td>Buying questions where Google's AI names them</td><td>13 of 15</td></tr>
+        </tbody>
+    </table>
+    <p class="box"><strong>Built paused:</strong> Python scripts create every campaign paused, and nothing goes live without a human. Claude flags search terms that spend money with zero conversions and writes the negative keywords weekly. A conversion means a real enquiry.</p>
+  </section>
+
+  <section class="card">
+    <h2>Ads made from the shop's own photos</h2>
+    <p>Remarketing banners for a Geelong pizzeria in 7 sizes, all made from the restaurant's own photos.</p>
+  </section>
+
+  <section class="card">
+    <h2>How to apply this to your own business</h2>
+    <p>Copy everything in the box below and paste it into your own AI (Claude, ChatGPT, Copilot, whatever you use).</p>
+    <div class="prompt">
+      <pre id="promptText">I watched Rye Smith's talk from Spruik on getting found by AI and running
+SEO with Claude. The idea: AI is the new shopfront. People ask ChatGPT,
+Perplexity and Google AI where to buy, and the businesses AI can read and
+trust get named.
+
+His main points:
+1. ChatGPT can beat Google as a source of customers.
+2. Ask the same buying questions every month and check if you're named.
+3. Check a tool's numbers against Google's own data before trusting them.
+4. Fix, don't just report: find the problem and fix it the same day.
+
+Help me apply this to my own business, one step at a time:
+
+1. First ask me about my business: what I sell, who my customers are,
+   where I'm based, and my website address if I have one.
+2. Help me write 3 to 5 questions my customers would ask an AI assistant
+   when looking for what I sell.
+3. Tell me how to ask those questions in ChatGPT, Perplexity and Google AI,
+   and how to record whether I'm named, cited or first.
+4. Based on what I find, suggest the one simplest fix that would make my
+   business easier for AI to read and recommend.
+5. Give me a short monthly checklist so I can track progress.
+6. Then stop and ask if I want to go further.
+
+Keep explanations short and plain. Ask before assuming anything about my business.</pre>
+      <button class="btn" id="promptCopy" type="button">Copy this prompt</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Check yourself</h2>
+    <ul class="checks" id="checks">
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">✓</span>I wrote down 3 questions my customers would ask AI</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">✓</span>I asked them in ChatGPT, Perplexity and Google AI</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">✓</span>I recorded whether I was named, cited or first</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">✓</span>I picked one fix to make this month</button></li>
+    </ul>
+    <p class="progress" id="progress">0 of 4 done</p>
+  </section>
+
+  <section class="cta">Want this done for your business? Spruik · <a href="https://spruik.co">spruik.co</a></section>
+
+  <section class="qr">
+    <img src="/talk/rye/qr-talk-itabs-rye.png" alt="QR code for itabs-this-video.jgwynne7.workers.dev/talk/rye">
+    <p>itabs-this-video.jgwynne7.workers.dev/talk/rye</p>
+  </section>
+
+  <footer>
+    <strong>Made with iTabs</strong><br>
+    Jon · <a href="tel:0421508009">0421 508 009</a> · <a href="https://wa.me/61421508009">WhatsApp</a><br>
+    <a href="mailto:jgwynne7@gmail.com">jgwynne7@gmail.com</a>
+  </footer>
+</main>
+<script>
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function copyText(text, done, fail) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text) ? done() : fail(); });
+      return;
+    }
+    fallbackCopy(text) ? done() : fail();
+  }
+  function flasher(btn) {
+    var label = btn.innerHTML;
+    return function (html, ok) {
+      btn.innerHTML = html;
+      btn.classList.toggle('done', ok);
+      setTimeout(function () { btn.innerHTML = label; btn.classList.remove('done'); }, 2500);
+    };
+  }
+
+  // Copy the whole notes file
+  var copyBtn = document.getElementById('copyBtn');
+  var flashCopy = flasher(copyBtn);
+  copyBtn.addEventListener('click', function () {
+    fetch('/talk/rye/rye-smith-getting-found-by-ai.md')
+      .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+      .then(function (text) {
+        copyText(text, function () { flashCopy('Copied!<small>Now paste it into your AI</small>', true); },
+          function () { flashCopy('Couldn\'t copy<small>Use Download the MD instead</small>', false); });
+      })
+      .catch(function () { flashCopy('Couldn\'t load the notes<small>Try Download the MD</small>', false); });
+  });
+
+  // Copy just the prompt
+  var promptBtn = document.getElementById('promptCopy');
+  var flashPrompt = flasher(promptBtn);
+  promptBtn.addEventListener('click', function () {
+    copyText(document.getElementById('promptText').textContent,
+      function () { flashPrompt('Copied! Now paste it into your AI', true); },
+      function () { flashPrompt('Couldn\'t copy. Press and hold the text instead', false); });
+  });
+
+  // Check yourself: tap to tick, remembered on this device only
+  var KEY = 'itabs-talk-rye-checks';
+  var checks = document.querySelectorAll('#checks .check');
+  var progress = document.getElementById('progress');
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+  function update() {
+    var state = [], n = 0;
+    for (var i = 0; i < checks.length; i++) {
+      var on = checks[i].getAttribute('aria-checked') === 'true';
+      state.push(on); if (on) n++;
+    }
+    progress.textContent = n === checks.length ? 'All done. Nice work!' : n + ' of ' + checks.length + ' done';
+    progress.classList.toggle('all', n === checks.length);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  for (var i = 0; i < checks.length; i++) {
+    if (saved[i] === true) checks[i].setAttribute('aria-checked', 'true');
+    checks[i].addEventListener('click', function () {
+      this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+      update();
+    });
+  }
+  update();
+</script>
+</body>
+</html>

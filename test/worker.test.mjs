@@ -727,3 +727,24 @@ test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", asy
   assert.equal((await get(env(), "/talk/nobody")).status, 404);
   assert.equal((await get(env(), "/skill.md")).headers.get("content-disposition"), 'attachment; filename="itabs-this-video-skill.md"', "video skill unchanged");
 });
+
+test("talk: Rye's page, MD and QR are served under /talk/rye", async () => {
+  const page = await get(env(), "/talk/rye");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /Getting found by AI/); assert.match(html, /Made with iTabs/); assert.match(html, /0421 508 009/);
+  assert.match(html, /Your homework[\s\S]*The big idea[\s\S]*Where the signups came from[\s\S]*Real numbers[\s\S]*How to apply this to your own business[\s\S]*Check yourself/);
+  assert.equal((html.match(/<table class="nums">/g) || []).length, 2);
+  const tables = html.match(/<table class="nums">[\s\S]*?<\/table>/g);
+  assert.deepEqual(tables.map((x) => (x.match(/<tr><td>/g) || []).length), [6, 6], "each table has only its own rows");
+  assert.match(tables[0], /App Store<\/td><td>192/); assert.doesNotMatch(tables[0], /Cost per lead/);
+  assert.match(html, /<td>ChatGPT<\/td><td>1,361<\/td>/); assert.match(html, /<td>Buying questions where Google's AI names them<\/td><td>13 of 15<\/td>/);
+  assert.match(html, /class="cta">Want this done for your business\? Spruik/);
+  assert.match(html, /href="\/talk\/rye\/rye-smith-getting-found-by-ai\.md"/); assert.match(html, /src="\/talk\/rye\/qr-talk-itabs-rye\.png"/);
+  assert.match(html, /'itabs-talk-rye-checks'/);
+  assert.doesNotMatch(html, /\{\{|aidan/i);
+  const md = await get(env(), "/talk/rye/rye-smith-getting-found-by-ai.md");
+  assert.match(md.headers.get("content-disposition"), /attachment/);
+  assert.match(await md.text(), /^# Getting found by AI: how Spruik runs SEO with Claude\n/);
+  assert.equal((await get(env(), "/talk/rye/qr-talk-itabs-rye.png")).headers.get("content-type"), "image/png");
+});
