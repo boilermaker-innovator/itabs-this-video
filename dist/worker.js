@@ -639,9 +639,9 @@ var aidan_default = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make bad code fail \xB7 Aidan Morgan</title>
-<meta name="description" content="Notes from Aidan Morgan's (Bankwest) talk 'Quality gates for agents: Make bad code fail': key points, quality gate checks, and a prompt to apply it to your own project.">
+<meta name="description" content="Notes from Aidan Morgan's (Bankwest) talk 'Quality gates for agents: Make bad code fail': your homework, key points, quality gate checks, and a prompt to apply it to your own project.">
 <style>
-  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#6c5ce7; --ok:#2ecc71; }
+  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#6c5ce7; --accent-soft:#a29bfe; --ok:#2ecc71; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif; min-height:100vh; display:flex; justify-content:center; padding:24px 16px; }
   main { width:100%; max-width:430px; display:flex; flex-direction:column; gap:20px; }
@@ -649,9 +649,11 @@ var aidan_default = `<!doctype html>
   .tag { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
   h1 { font-size:30px; line-height:1.15; margin:8px 0 6px; }
   .by { color:var(--muted); }
-  .for { margin-top:10px; font-size:14px; font-weight:600; color:var(--accent); }
   .quote { margin-top:14px; font-size:18px; font-weight:600; }
   .lead { margin-top:14px; color:var(--muted); font-size:15px; }
+  .box { margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(108,92,231,.14); border-left:3px solid var(--accent); font-size:15px; }
+  .box strong { color:var(--accent-soft); }
+  .note { margin-top:12px; font-size:13px; color:var(--muted); }
   .buttons { display:flex; flex-direction:column; gap:10px; }
   .btn { display:block; width:100%; padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:var(--text); font:inherit; font-weight:700; text-align:center; text-decoration:none; cursor:pointer; }
   .btn small { display:block; font-weight:400; font-size:13px; color:var(--muted); margin-top:2px; }
@@ -659,6 +661,33 @@ var aidan_default = `<!doctype html>
   .btn.primary small { color:rgba(255,255,255,.8); }
   .btn:active { transform:scale(.98); }
   .btn.done { border-color:var(--ok); }
+  /* Talk content */
+  .card h2 { font-size:21px; line-height:1.25; margin-bottom:12px; }
+  .card h2 + .big { margin-top:0; }
+  .card p + p, .card p + ul, .card ul + p, .card table + p, .card p + table, .card .box + p, .card ul + .box { margin-top:12px; }
+  .big { font-size:18px; font-weight:700; }
+  .homework { border-color:var(--accent); }
+  .homework .tag { margin-bottom:6px; }
+  ol, ul { padding-left:20px; }
+  li + li { margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; }
+  td:first-child { font-weight:700; white-space:nowrap; }
+  .debt { display:flex; flex-direction:column; gap:10px; }
+  .debt div { padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid var(--line); font-size:15px; }
+  .prompt { margin-top:12px; background:#0a0a10; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .prompt pre { margin:0; padding:14px; max-height:340px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#d8d8e2; }
+  .prompt .btn { border:0; border-top:1px solid var(--line); border-radius:0; background:var(--accent); }
+  .prompt .btn.done { background:#1f7a46; }
+  .checks { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .checks li + li { margin-top:0; }
+  .check { display:flex; align-items:center; gap:12px; width:100%; padding:14px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); font:inherit; font-size:15px; text-align:left; cursor:pointer; }
+  .check .tick { flex:none; width:24px; height:24px; border-radius:7px; border:2px solid var(--muted); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:transparent; }
+  .check[aria-checked="true"] { border-color:var(--ok); }
+  .check[aria-checked="true"] .tick { background:var(--ok); border-color:var(--ok); color:#06210f; }
+  .progress { margin-top:12px; font-size:14px; color:var(--muted); text-align:center; }
+  .progress.all { color:var(--ok); font-weight:700; }
   .qr { text-align:center; }
   .qr img { width:160px; height:160px; background:#fff; border-radius:12px; padding:6px; }
   .qr p { overflow-wrap:anywhere; font-size:13px; color:var(--muted); margin-top:6px; }
@@ -673,15 +702,125 @@ var aidan_default = `<!doctype html>
     <div class="tag">iTabs This Talk \xB7 Quality gates for agents</div>
     <h1>Make bad code fail</h1>
     <div class="by">Aidan Morgan \xB7 Bankwest</div>
-    <p class="for">For anyone using an AI agent to write code.</p>
+    <p class="box"><strong>Who it's for:</strong> anyone using an AI agent (Claude Code, Copilot, Cursor and so on) to write code, including vibe coders.</p>
     <p class="quote">\u201CMake the build say no, so you don't have to.\u201D</p>
     <p class="lead">The key points, Aidan's quality gate checks, and a ready-to-paste prompt so your own AI can help you apply them to your project.</p>
+    <p class="note">Notes compiled by Jon Gwynne from photos of the slides, so a few details may be slightly off.</p>
   </section>
 
   <section class="buttons">
     <a class="btn primary" href="/talk/aidan/aidan-morgan-make-bad-code-fail.md" download>Download the MD<small>The talk notes as one file</small></a>
     <button class="btn" id="copyBtn" type="button">Copy to my own AI<small>Copies the notes, paste into Claude, ChatGPT or similar</small></button>
     <a class="btn" href="/talk/skill" download>Make your own<small>Get the iTabs This Talk skill and make a page for your talk</small></a>
+  </section>
+
+  <section class="card homework">
+    <div class="tag">Your homework</div>
+    <p class="big">Add one gate: your most-failed check, in a Stop hook and in CI.</p>
+    <p>You're done when your agent gets blocked by your gate at least once.</p>
+  </section>
+
+  <section class="card">
+    <h2>The big idea</h2>
+    <p class="big">Make the build say no, so you don't have to.</p>
+    <p>When an AI agent writes code, don't rely on asking it nicely or reviewing everything by hand. Set up quality gates that automatically fail bad code, and lock them so the agent can't get around them.</p>
+  </section>
+
+  <section class="card">
+    <h2>Key points</h2>
+    <ol>
+      <li><strong>Check what you can measure.</strong> Readable, tested, structured, safe. If you can measure it, don't ask for it.</li>
+      <li><strong>Wire it into every loop, and lock it.</strong> Hooks that exit 2, a required CI check, rules the agent can't edit.</li>
+      <li><strong>Ratchet, then grow it.</strong> Baseline today, fail only on worse. Every repeated review comment becomes a house rule.</li>
+      <li><strong>A green build is not the whole story.</strong> Gates stop bad code, but they don't catch the wrong fix or keep your team understanding the system.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Aidan's quality gate checks</h2>
+    <p><strong>What to check:</strong> anything you can measure.</p>
+    <table>
+      <thead><tr><th>Check</th><th>The question it answers</th></tr></thead>
+      <tbody>
+        <tr><td>Readable</td><td>Can a person follow this code?</td></tr>
+        <tr><td>Tested</td><td>Is it covered by tests that pass?</td></tr>
+        <tr><td>Structured</td><td>Does it follow the project's structure and rules?</td></tr>
+        <tr><td>Safe</td><td>Is it free of known security problems?</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Where the gates run:</strong> every loop, locked down.</p>
+    <ul>
+      <li><strong>Agent hooks that exit 2:</strong> the agent is stopped and told to fix the problem before it can finish.</li>
+      <li><strong>A required CI check:</strong> code can't be merged until it passes.</li>
+      <li><strong>Rules the agent can't edit:</strong> so it can't "fix" a failure by loosening the rule.</li>
+    </ul>
+    <p class="box"><strong>What "exit 2" means:</strong> in Claude Code, a Stop hook is a small script that runs when the agent thinks it's finished. If the script exits with code 2, the agent isn't allowed to stop. It gets the error message back and has to fix the problem first.</p>
+    <p><strong>How the gates tighten:</strong> a ratchet.</p>
+    <ul>
+      <li>Record today's numbers as the baseline.</li>
+      <li>Fail only on new or worse code.</li>
+      <li>Turn every repeated review comment into a house rule.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Your tech debt, now on a payment plan</h2>
+    <div class="debt">
+      <div>A <strong>big-bang gate</strong> finds 1,284 problems on day one, and by day two someone switches it off.</div>
+      <div>A <strong>baseline gate</strong> records today's numbers, fails only on new or worse code, and tightens one step a month.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>How to apply this to your own project</h2>
+    <p>Copy everything in the box below and paste it into your own AI (Claude, ChatGPT, Copilot, whatever you use).</p>
+    <div class="prompt">
+      <pre id="promptText">I watched Aidan Morgan's talk "Quality gates for agents: Make bad code fail".
+The idea: make the build say no, so you don't have to. Set up automatic quality
+gates so bad code (including code an AI agent writes) fails loudly and early.
+
+His three rules:
+1. Check what you can measure: readable, tested, structured, safe.
+   If you can measure it, don't ask for it.
+2. Wire it into every loop, and lock it: agent hooks that exit 2,
+   a required CI check, rules the agent can't edit.
+3. Ratchet, then grow it: record a baseline today, fail only on new or
+   worse code, tighten one step a month. Every repeated review comment
+   becomes a house rule.
+
+His warning: a green build is not the whole story. Gates don't catch the
+wrong fix, and they don't keep the team understanding the system.
+
+Help me apply this to my own project, one gate at a time:
+
+1. First ask me what my project is: language, framework, how I run tests,
+   where the code lives (e.g. GitHub), how it's deployed, and which AI
+   coding agent I use, if any.
+2. For each of the four checks (readable, tested, structured, safe), tell me
+   whether I already have it, and if not, the simplest tool for my stack.
+3. Ask me which check fails most often today. That's the first gate.
+4. Set it up as a baseline gate, not a big-bang one: record today's numbers
+   and fail only on new or worse code.
+5. Wire it in twice: as a Stop hook (exit code 2) in my coding agent, and as
+   a required check in CI. Give me the exact files and commands.
+6. Show me how to stop the agent editing the gate's rules or config.
+7. Have me make it fail on purpose once, so I can see it really blocks bad code.
+8. Then suggest the next gate and stop.
+
+Keep explanations short and plain. Ask before assuming anything about my setup.</pre>
+      <button class="btn" id="promptCopy" type="button">Copy this prompt</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Check yourself</h2>
+    <ul class="checks" id="checks">
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">\u2713</span>I picked my most-failed check</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">\u2713</span>It runs as a Stop hook and as a required CI check</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">\u2713</span>The agent can't edit the gate's rules</button></li>
+      <li><button class="check" type="button" role="checkbox" aria-checked="false"><span class="tick">\u2713</span>I made it fail on purpose once and saw it block</button></li>
+    </ul>
+    <p class="progress" id="progress">0 of 4 done</p>
   </section>
 
   <section class="qr">
@@ -696,13 +835,6 @@ var aidan_default = `<!doctype html>
   </footer>
 </main>
 <script>
-  var copyBtn = document.getElementById('copyBtn');
-  var copyLabel = copyBtn.innerHTML;
-  function flash(html, ok) {
-    copyBtn.innerHTML = html;
-    copyBtn.classList.toggle('done', ok);
-    setTimeout(function () { copyBtn.innerHTML = copyLabel; copyBtn.classList.remove('done'); }, 2500);
-  }
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
@@ -711,25 +843,75 @@ var aidan_default = `<!doctype html>
     document.body.removeChild(ta);
     return ok;
   }
+  function copyText(text, done, fail) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text) ? done() : fail(); });
+      return;
+    }
+    fallbackCopy(text) ? done() : fail();
+  }
+  function flasher(btn) {
+    var label = btn.innerHTML;
+    return function (html, ok) {
+      btn.innerHTML = html;
+      btn.classList.toggle('done', ok);
+      setTimeout(function () { btn.innerHTML = label; btn.classList.remove('done'); }, 2500);
+    };
+  }
+
+  // Copy the whole notes file
+  var copyBtn = document.getElementById('copyBtn');
+  var flashCopy = flasher(copyBtn);
   copyBtn.addEventListener('click', function () {
     fetch('/talk/aidan/aidan-morgan-make-bad-code-fail.md')
       .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
       .then(function (text) {
-        var done = function () { flash('Copied!<small>Now paste it into your AI</small>', true); };
-        if (navigator.clipboard && window.isSecureContext) {
-          return navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text) ? done() : flash('Couldn\\'t copy<small>Use Download the MD instead</small>', false); });
-        }
-        fallbackCopy(text) ? done() : flash('Couldn\\'t copy<small>Use Download the MD instead</small>', false);
+        copyText(text, function () { flashCopy('Copied!<small>Now paste it into your AI</small>', true); },
+          function () { flashCopy('Couldn\\'t copy<small>Use Download the MD instead</small>', false); });
       })
-      .catch(function () { flash('Couldn\\'t load the notes<small>Try Download the MD</small>', false); });
+      .catch(function () { flashCopy('Couldn\\'t load the notes<small>Try Download the MD</small>', false); });
   });
+
+  // Copy just the prompt
+  var promptBtn = document.getElementById('promptCopy');
+  var flashPrompt = flasher(promptBtn);
+  promptBtn.addEventListener('click', function () {
+    copyText(document.getElementById('promptText').textContent,
+      function () { flashPrompt('Copied! Now paste it into your AI', true); },
+      function () { flashPrompt('Couldn\\'t copy. Press and hold the text instead', false); });
+  });
+
+  // Check yourself: tap to tick, remembered on this device only
+  var KEY = 'itabs-talk-aidan-checks';
+  var checks = document.querySelectorAll('#checks .check');
+  var progress = document.getElementById('progress');
+  var saved = [];
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+  function update() {
+    var state = [], n = 0;
+    for (var i = 0; i < checks.length; i++) {
+      var on = checks[i].getAttribute('aria-checked') === 'true';
+      state.push(on); if (on) n++;
+    }
+    progress.textContent = n === checks.length ? 'All done. Nice work!' : n + ' of ' + checks.length + ' done';
+    progress.classList.toggle('all', n === checks.length);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  for (var i = 0; i < checks.length; i++) {
+    if (saved[i] === true) checks[i].setAttribute('aria-checked', 'true');
+    checks[i].addEventListener('click', function () {
+      this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+      update();
+    });
+  }
+  update();
 <\/script>
 </body>
 </html>
 `;
 
 // src/talk/aidan/aidan-morgan-make-bad-code-fail.md
-var aidan_morgan_make_bad_code_fail_default = "# Quality gates for agents: Make bad code fail\n\n**Aidan Morgan, Bankwest**\n\nFor anyone using an AI agent to write code.\n\n*Talk notes, packaged by iTabs \xB7 itabs-this-video.jgwynne7.workers.dev/talk/aidan*\n\n> Notes compiled by Jon Gwynne from photos of the slides, so a few details may be slightly off.\n\n---\n\n## The big idea\n\n**Make the build say no, so you don't have to.**\n\nWhen an AI agent writes code, don't rely on asking it nicely or reviewing everything by hand. Set up quality gates that automatically fail bad code, and lock them so the agent can't get around them.\n\n## Key points\n\n1. **Check what you can measure.** Readable, tested, structured, safe. If you can measure it, don't ask for it.\n2. **Wire it into every loop, and lock it.** Hooks that exit 2, a required CI check, rules the agent can't edit. In Claude Code, a Stop hook that exits with code 2 stops the agent finishing and sends the error back to it to fix.\n3. **Ratchet, then grow it.** Baseline today, fail only on worse. Every repeated review comment becomes a house rule.\n4. **A green build is not the whole story.** Gates stop bad code, but they don't catch the wrong fix or keep your team understanding the system.\n\n## Aidan's quality gate checks\n\n**What to check:** anything you can measure.\n\n| Check | The question it answers |\n|-------|-------------------------|\n| Readable | Can a person follow this code? |\n| Tested | Is it covered by tests that pass? |\n| Structured | Does it follow the project's structure and rules? |\n| Safe | Is it free of known security problems? |\n\n**Where the gates run:** every loop, locked down.\n\n- **Agent hooks that exit 2:** the agent is stopped and told to fix the problem before it can finish.\n- **A required CI check:** code can't be merged until it passes.\n- **Rules the agent can't edit:** so it can't \"fix\" a failure by loosening the rule.\n\n**How the gates tighten:** a ratchet.\n\n- Record today's numbers as the baseline.\n- Fail only on new or worse code.\n- Turn every repeated review comment into a house rule.\n\n## Your tech debt, now on a payment plan\n\nA **big-bang gate** finds 1,284 problems on day one, and by day two someone switches it off.\n\nA **baseline gate** records today's numbers, fails only on new or worse code, and tightens one step a month.\n\n## This sprint\n\n**Add one gate: your most-failed check, in a Stop hook and in CI.**\n\n---\n\n## How to apply this to your own project\n\nCopy everything in the box below and paste it into your own AI (Claude, ChatGPT, Copilot, whatever you use).\n\n```text\nI watched Aidan Morgan's talk \"Quality gates for agents: Make bad code fail\".\nThe idea: make the build say no, so you don't have to. Set up automatic quality\ngates so bad code (including code an AI agent writes) fails loudly and early.\n\nHis three rules:\n1. Check what you can measure: readable, tested, structured, safe.\n   If you can measure it, don't ask for it.\n2. Wire it into every loop, and lock it: agent hooks that exit 2,\n   a required CI check, rules the agent can't edit.\n3. Ratchet, then grow it: record a baseline today, fail only on new or\n   worse code, tighten one step a month. Every repeated review comment\n   becomes a house rule.\n\nHis warning: a green build is not the whole story. Gates don't catch the\nwrong fix, and they don't keep the team understanding the system.\n\nHelp me apply this to my own project, one gate at a time:\n\n1. First ask me what my project is: language, framework, how I run tests,\n   where the code lives (e.g. GitHub), how it's deployed, and which AI\n   coding agent I use, if any.\n2. For each of the four checks (readable, tested, structured, safe), tell me\n   whether I already have it, and if not, the simplest tool for my stack.\n3. Ask me which check fails most often today. That's the first gate.\n4. Set it up as a baseline gate, not a big-bang one: record today's numbers\n   and fail only on new or worse code.\n5. Wire it in twice: as a Stop hook (exit code 2) in my coding agent, and as\n   a required check in CI. Give me the exact files and commands.\n6. Show me how to stop the agent editing the gate's rules or config.\n7. Have me make it fail on purpose once, so I can see it really blocks bad code.\n8. Then suggest the next gate and stop.\n\nKeep explanations short and plain. Ask before assuming anything about my setup.\n```\n\n---\n\n*Made with iTabs \xB7 Jon \xB7 0421 508 009 \xB7 jgwynne7@gmail.com*\n";
+var aidan_morgan_make_bad_code_fail_default = "# Quality gates for agents: Make bad code fail\n\n**Aidan Morgan, Bankwest**\n\n*Talk notes, packaged by iTabs \xB7 itabs-this-video.jgwynne7.workers.dev/talk/aidan*\n\n> **Who it's for:** anyone using an AI agent (Claude Code, Copilot, Cursor and so on) to write code, including vibe coders.\n\n> Notes compiled by Jon Gwynne from photos of the slides, so a few details may be slightly off.\n\n---\n\n## Your homework\n\n**Add one gate: your most-failed check, in a Stop hook and in CI.**\n\nYou're done when your agent gets blocked by your gate at least once.\n\n---\n\n## The big idea\n\n**Make the build say no, so you don't have to.**\n\nWhen an AI agent writes code, don't rely on asking it nicely or reviewing everything by hand. Set up quality gates that automatically fail bad code, and lock them so the agent can't get around them.\n\n## Key points\n\n1. **Check what you can measure.** Readable, tested, structured, safe. If you can measure it, don't ask for it.\n2. **Wire it into every loop, and lock it.** Hooks that exit 2, a required CI check, rules the agent can't edit.\n3. **Ratchet, then grow it.** Baseline today, fail only on worse. Every repeated review comment becomes a house rule.\n4. **A green build is not the whole story.** Gates stop bad code, but they don't catch the wrong fix or keep your team understanding the system.\n\n## Aidan's quality gate checks\n\n**What to check:** anything you can measure.\n\n| Check | The question it answers |\n|-------|-------------------------|\n| Readable | Can a person follow this code? |\n| Tested | Is it covered by tests that pass? |\n| Structured | Does it follow the project's structure and rules? |\n| Safe | Is it free of known security problems? |\n\n**Where the gates run:** every loop, locked down.\n\n- **Agent hooks that exit 2:** the agent is stopped and told to fix the problem before it can finish.\n- **A required CI check:** code can't be merged until it passes.\n- **Rules the agent can't edit:** so it can't \"fix\" a failure by loosening the rule.\n\n> **What \"exit 2\" means:** in Claude Code, a Stop hook is a small script that runs when the agent thinks it's finished. If the script exits with code 2, the agent isn't allowed to stop. It gets the error message back and has to fix the problem first.\n\n**How the gates tighten:** a ratchet.\n\n- Record today's numbers as the baseline.\n- Fail only on new or worse code.\n- Turn every repeated review comment into a house rule.\n\n## Your tech debt, now on a payment plan\n\nA **big-bang gate** finds 1,284 problems on day one, and by day two someone switches it off.\n\nA **baseline gate** records today's numbers, fails only on new or worse code, and tightens one step a month.\n\n---\n\n## How to apply this to your own project\n\nCopy everything in the box below and paste it into your own AI (Claude, ChatGPT, Copilot, whatever you use).\n\n```text\nI watched Aidan Morgan's talk \"Quality gates for agents: Make bad code fail\".\nThe idea: make the build say no, so you don't have to. Set up automatic quality\ngates so bad code (including code an AI agent writes) fails loudly and early.\n\nHis three rules:\n1. Check what you can measure: readable, tested, structured, safe.\n   If you can measure it, don't ask for it.\n2. Wire it into every loop, and lock it: agent hooks that exit 2,\n   a required CI check, rules the agent can't edit.\n3. Ratchet, then grow it: record a baseline today, fail only on new or\n   worse code, tighten one step a month. Every repeated review comment\n   becomes a house rule.\n\nHis warning: a green build is not the whole story. Gates don't catch the\nwrong fix, and they don't keep the team understanding the system.\n\nHelp me apply this to my own project, one gate at a time:\n\n1. First ask me what my project is: language, framework, how I run tests,\n   where the code lives (e.g. GitHub), how it's deployed, and which AI\n   coding agent I use, if any.\n2. For each of the four checks (readable, tested, structured, safe), tell me\n   whether I already have it, and if not, the simplest tool for my stack.\n3. Ask me which check fails most often today. That's the first gate.\n4. Set it up as a baseline gate, not a big-bang one: record today's numbers\n   and fail only on new or worse code.\n5. Wire it in twice: as a Stop hook (exit code 2) in my coding agent, and as\n   a required check in CI. Give me the exact files and commands.\n6. Show me how to stop the agent editing the gate's rules or config.\n7. Have me make it fail on purpose once, so I can see it really blocks bad code.\n8. Then suggest the next gate and stop.\n\nKeep explanations short and plain. Ask before assuming anything about my setup.\n```\n\n---\n\n## Check yourself\n\n- [ ] I picked my most-failed check\n- [ ] It runs as a Stop hook and as a required CI check\n- [ ] The agent can't edit the gate's rules\n- [ ] I made it fail on purpose once and saw it block\n\n---\n\n*Made with iTabs \xB7 Jon \xB7 0421 508 009 \xB7 jgwynne7@gmail.com*\n";
 
 // src/talk/aidan/qr-talk-itabs-aidan.png
 var qr_talk_itabs_aidan_default = __toBinary("iVBORw0KGgoAAAANSUhEUgAAAzQAAAM0AQAAAABFCVraAAADLklEQVR42u3dQW7DIBAFUNQLcP9bcgNXkaIEM4ObSm0kyGNRNYnlt/DCXwMM5XjLaIXD4XA4HA6Hw+FwOBwOh8PhcDgcDofD4XA4HM4nOGUc9fZdvf9wu3b89XGT8rxucslXec/gcDgcDofzB6PPB7WPDveP7RwNssxQL28gH3A4HA6Hs3o+GGJAnw+GCkHtSwcXN5APOBwOh8PZLB9cx4B+WqLKBxwOh8PhfEw+iG/7rLqgfsDhcDgczsb54KXphqP/z/oDDofD4XC2zgfDOE0yvPQn3kA+4HA4HA5n6XyQjVA1OJIiQjtngXQfpefD4XA4HM6i9YNsI0I5TyO0x3ftXCZo4abqBxwOh8Ph7FA/mNQFnjGg/y/Ghb5d0nhnz4fD4XA4nHXrB6E48Hz5D6WDeo4VceGifMDhcDgcznb5YCgs9BcPceHIlyiYX+BwOBwOZ4d8UO4v9aED0pAFQokhbmKw/oDD4XA4nE3yQbYRYSgnZL0OssKC+QUOh8PhcLbJB0fomxyiQVy4GDY5Wp/I4XA4HM4++SDfwZidxPCLvCEfcDgcDoezeP2gJUculUdd4JgtTMjWHzT1Aw6Hw+FwNqofZAcplDCNcL2/MbRTlA84HA6Hw1m1fjDd6Ti0QWrJToZqfSKHw+FwOFvXD6bHNPaLELIWzGXaDsHz4XA4HA5n0XxQZg0Pan5c0/0i/Q84HA6Hw/mUfJCFhOw4hvzYhqJ+wOFwOBzODvkg73v0QlIoYX5BPuBwOBwOZ6d8kLVTvGi3HDslha0L8gGHw+FwOAvng/yVP+mpONQP+lGtT+RwOBwOZ9/6wXGeQWj5qUzZEsZwZ/mAw+FwOJyF6wdDIeCnDQvDR/0TORwOh8PZLh/UZKVidoxzSTol1csujPIBh8PhcDgL54NpFsgrCc+LJzeVDzgcDofD2S4f5EcqZHEhbneUDzgcDofD2TgfhApB7LQ8XbgoH3A4HA6Hs34+yNYfhJ4IZXY+07yVgufD4XA4HM6i+WAY0y0J8Szn7Gwn6xM5HA6Hw1k/H/znaBwOh8PhcDgcDofD4XA4HA6Hw+FwOBwOh8PhcPZ1vgG8puI6rcxmkQAAAABJRU5ErkJggg==");

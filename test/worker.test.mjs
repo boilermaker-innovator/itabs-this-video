@@ -701,7 +701,7 @@ test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", asy
   const page = await get(env(), "/talk/aidan");
   assert.equal(page.status, 200); assert.match(page.headers.get("content-type"), /text\/html/);
   const html = await page.text();
-  assert.match(html, /Make bad code fail/); assert.match(html, /For anyone using an AI agent to write code\./); assert.match(html, /Made with iTabs/); assert.match(html, /0421 508 009/);
+  assert.match(html, /Make bad code fail/); assert.match(html, /Who it's for:/); assert.match(html, /Your homework[\s\S]*The big idea/); assert.match(html, /What "exit 2" means/); assert.match(html, /id="promptCopy"/); assert.equal((html.match(/role="checkbox"/g) || []).length, 4); assert.match(html, /Made with iTabs/); assert.match(html, /0421 508 009/);
   assert.match(html, /href="\/talk\/aidan\/aidan-morgan-make-bad-code-fail\.md"/);
   assert.match(html, /fetch\('\/talk\/aidan\/aidan-morgan-make-bad-code-fail\.md'\)/);
   assert.match(html, /href="\/talk\/skill" download/);
@@ -712,8 +712,8 @@ test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", asy
   assert.equal(md.status, 200); assert.match(md.headers.get("content-disposition"), /attachment/);
   const mdText = await md.text();
   assert.match(mdText, /^# Quality gates for agents/);
-  assert.match(mdText, /For anyone using an AI agent to write code\./);
-  assert.match(mdText, /Stop hook that exits with code 2 stops the agent finishing/);
+  assert.match(mdText, /Who it's for:\*\* anyone using an AI agent/);
+  assert.match(mdText, /## Your homework[\s\S]*## The big idea[\s\S]*What "exit 2" means[\s\S]*## Check yourself/);
   const qr = await get(env(), "/talk/aidan/qr-talk-itabs-aidan.png");
   assert.equal(qr.headers.get("content-type"), "image/png");
   assert.deepEqual([...new Uint8Array(await qr.arrayBuffer()).slice(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
