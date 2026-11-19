@@ -1,6 +1,6 @@
 ---
 name: itabs-this-talk
-description: 'Turn a talk into an iTabs This Talk page at talk.itabs.co/<speaker>: a Markdown file of the talk (title, speaker, who it's for, homework, key points, a prompt the audience can paste into their own AI, and a Check yourself list), a simple one-page site that shows the whole talk with Download the MD, Copy to my own AI and Make your own buttons, and a QR code for the last slide. Use when a speaker says "make my talk page", "iTabs this talk", "make a page for my talk", "QR code for my last slide", or wants their audience to take the talk home.'
+description: 'Turn a talk into an iTabs This Talk page at itabs-this-video.jgwynne7.workers.dev/talk/<speaker>: a Markdown file of the talk (title, speaker, who it's for, homework, key points, a prompt the audience can paste into their own AI, and a Check yourself list), a simple one-page site that shows the whole talk with Download the MD, Copy to my own AI and Make your own buttons, and a QR code for the last slide. Use when a speaker says "make my talk page", "iTabs this talk", "make a page for my talk", "QR code for my last slide", or wants their audience to take the talk home.'
 ---
 
 # iTabs This Talk
@@ -11,9 +11,11 @@ You make one folder, named after the speaker, containing:
 
 1. **The talk as a Markdown file**: title, speaker, who it's for, your homework, key points, a "paste this into your own AI" section, and a Check yourself list.
 2. **`index.html`**: one simple page that shows the whole talk, with three buttons: **Download the MD**, **Copy to my own AI**, **Make your own** (downloads this skill).
-3. **A QR code** pointing at `https://talk.itabs.co/<slug>`, for the talk's last slide.
+3. **A QR code** pointing at `https://itabs-this-video.jgwynne7.workers.dev/talk/<slug>`, for the talk's last slide.
 
-The folder is sent to Jon at iTabs, who puts it live at `talk.itabs.co/<slug>`.
+The folder is sent to Jon at iTabs, who puts it live at `itabs-this-video.jgwynne7.workers.dev/talk/<slug>`.
+
+> **Address for now:** talk pages are hosted on the iTabs This Video site, at `itabs-this-video.jgwynne7.workers.dev/talk/<slug>`. They'll move to `talk.itabs.co/<slug>` later; until then, always use the address above, including in the QR code.
 
 **Keep it simple.** No logins, no forms, no AI on the page, no tracking, no external scripts or fonts. Plain HTML that works as static files.
 
@@ -37,9 +39,9 @@ Then confirm these with the speaker in **one short message** (fill in your best 
 | Headline quote or one-liner (optional) | "Make the build say no, so you don't have to." |
 | Who it's for | Anyone using an AI agent to write code |
 | Your homework (the one thing to do after the talk) | Add one gate: your most-failed check, in a Stop hook and in CI. |
-| Page address (slug) | `talk.itabs.co/aidan` |
+| Page address (slug) | `itabs-this-video.jgwynne7.workers.dev/talk/aidan` |
 
-**Choosing the slug:** lowercase first name, letters, numbers and hyphens only (e.g. `aidan`). If the speaker shares a first name with an earlier speaker, or wants to be safe, use `first-last` (e.g. `aidan-morgan`). Tell the speaker they can open `talk.itabs.co/<slug>` to check it isn't already taken **before** the QR code goes on a slide.
+**Choosing the slug:** lowercase first name, letters, numbers and hyphens only (e.g. `aidan`). If the speaker shares a first name with an earlier speaker, or wants to be safe, use `first-last` (e.g. `aidan-morgan`). Tell the speaker they can open `itabs-this-video.jgwynne7.workers.dev/talk/<slug>` to check it isn't already taken **before** the QR code goes on a slide.
 
 ---
 
@@ -47,14 +49,14 @@ Then confirm these with the speaker in **one short message** (fill in your best 
 
 File name: `<first>-<last>-<talk-title-in-a-few-words>.md`, all lowercase with hyphens, e.g. `aidan-morgan-make-bad-code-fail.md`.
 
-Use this structure. Required sections are marked; drop optional sections if the talk doesn't have that content. Live example: talk.itabs.co/aidan.
+Use this structure. Required sections are marked; drop optional sections if the talk doesn't have that content. Live example: itabs-this-video.jgwynne7.workers.dev/talk/aidan.
 
 ````markdown
 # <Talk title>[: <subtitle>]
 
 **<Speaker name>[, <Organisation>]**
 
-*Talk notes, packaged by iTabs · talk.itabs.co/<slug>*
+*Talk notes, packaged by iTabs · itabs-this-video.jgwynne7.workers.dev/talk/<slug>*
 
 > **Who it's for:** <who gets the most from this talk, in plain words.>        ← required
 
@@ -154,7 +156,7 @@ Create `<slug>/index.html` from the template below. Replace each `{{…}}`:
 | `{{PROMPT}}` | The paste-in prompt, exactly as in the MD, with `&`, `<` and `>` escaped. Keep its line breaks. |
 | `{{CHECK_ITEMS}}` | One line per Check yourself item: see below |
 | `{{CHECK_COUNT}}` | How many Check yourself items there are |
-| `{{SLUG}}` | The slug (appears four times) |
+| `{{SLUG}}` | The slug (appears several times) |
 
 Change nothing else. HTML-escape any `&`, `<` or `>` in the text you insert, turn `**bold**` into `<strong>bold</strong>`, and don't put double quotes inside `{{DESCRIPTION}}`.
 
@@ -264,9 +266,9 @@ For example, a big idea section becomes:
   </section>
 
   <section class="buttons">
-    <a class="btn primary" href="{{MD_FILE}}" download>Download the MD<small>The talk notes as one file</small></a>
+    <a class="btn primary" href="/talk/{{SLUG}}/{{MD_FILE}}" download>Download the MD<small>The talk notes as one file</small></a>
     <button class="btn" id="copyBtn" type="button">Copy to my own AI<small>Copies the notes, paste into Claude, ChatGPT or similar</small></button>
-    <a class="btn" href="/skill/SKILL.md" download>Make your own<small>Get the iTabs This Talk skill and make a page for your talk</small></a>
+    <a class="btn" href="/talk/skill" download>Make your own<small>Get the iTabs This Talk skill and make a page for your talk</small></a>
   </section>
 
   <section class="card homework">
@@ -295,8 +297,8 @@ For example, a big idea section becomes:
   </section>
 
   <section class="qr">
-    <img src="qr-talk-itabs-{{SLUG}}.svg" alt="QR code for talk.itabs.co/{{SLUG}}">
-    <p>talk.itabs.co/{{SLUG}}</p>
+    <img src="/talk/{{SLUG}}/qr-talk-itabs-{{SLUG}}.png" alt="QR code for itabs-this-video.jgwynne7.workers.dev/talk/{{SLUG}}">
+    <p>itabs-this-video.jgwynne7.workers.dev/talk/{{SLUG}}</p>
   </section>
 
   <footer>
@@ -334,7 +336,7 @@ For example, a big idea section becomes:
   var copyBtn = document.getElementById('copyBtn');
   var flashCopy = flasher(copyBtn);
   copyBtn.addEventListener('click', function () {
-    fetch('{{MD_FILE}}')
+    fetch('/talk/{{SLUG}}/{{MD_FILE}}')
       .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
       .then(function (text) {
         copyText(text, function () { flashCopy('Copied!<small>Now paste it into your AI</small>', true); },
@@ -381,33 +383,29 @@ For example, a big idea section becomes:
 </html>
 ```
 
-The **Make your own** button links to `/skill/SKILL.md`, the shared copy of this skill on talk.itabs.co. Keep that link as it is: it only works once the page is live on talk.itabs.co, not when previewing the file locally.
+All links on the page start with `/talk/`, so they only work once the page is live on the iTabs This Video site, not when previewing the file locally. The **Make your own** button links to `/talk/skill`, the shared copy of this skill. Keep these links as they are.
 
 ---
 
 ## Step 4: Make the QR code
 
-Point it at `https://talk.itabs.co/<slug>` (with `https://`). Save two files in the folder:
-
-- `qr-talk-itabs-<slug>.svg`: used by the page, and sharp at any size.
-- `qr-talk-itabs-<slug>.png`: large, for dropping onto the last slide.
+Point it at `https://itabs-this-video.jgwynne7.workers.dev/talk/<slug>` (with `https://`). Save it in the folder as `qr-talk-itabs-<slug>.png`, large enough for the last slide. The page shows the same file.
 
 If you can run Python:
 
 ```python
 # pip install segno
 import segno
-url = "https://talk.itabs.co/<slug>"
+url = "https://itabs-this-video.jgwynne7.workers.dev/talk/<slug>"
 q = segno.make(url, error="m")
-q.save("<slug>/qr-talk-itabs-<slug>.svg", scale=10, border=4)
 q.save("<slug>/qr-talk-itabs-<slug>.png", scale=20, border=4)
 ```
 
 If you can, check it: decode the PNG (e.g. `cv2.QRCodeDetector().detectAndDecode`) and confirm it reads back the exact URL.
 
-If you can't run code, tell the speaker to make the QR code in any free QR generator using that exact URL, saved as both files above.
+If you can't run code, tell the speaker to make the QR code in any free QR generator using that exact URL, saved as `qr-talk-itabs-<slug>.png`.
 
-**For the last slide:** the QR code on a white background, as large as the slide allows (at least a quarter of the slide's height), with the address written underneath in plain text: `talk.itabs.co/<slug>`. Suggested line: "Take this talk home: scan for the notes and a prompt for your own AI."
+**For the last slide:** the QR code on a white background, as large as the slide allows (at least a quarter of the slide's height), with the address written underneath in plain text: `itabs-this-video.jgwynne7.workers.dev/talk/<slug>`. Suggested line: "Take this talk home: scan for the notes and a prompt for your own AI."
 
 ---
 
@@ -419,7 +417,6 @@ The finished folder:
 <slug>/
   index.html
   <first>-<last>-<talk>.md
-  qr-talk-itabs-<slug>.svg
   qr-talk-itabs-<slug>.png
 ```
 
@@ -429,7 +426,7 @@ Give the speaker the folder (as a zip if you can make one), the PNG for their la
 2. **Send the folder to Jon at iTabs** to put it live: WhatsApp or call 0421 508 009, or email jgwynne7@gmail.com.
 3. **Before presenting**, scan the QR code on a phone and check the page opens.
 
-If you're working inside the itabs-this-talk repo itself, put the folder at the repo root next to `aidan/`, and add the talk to the table in `README.md` and the list in the root `index.html`.
+If you're working inside the itabs-this-video repo itself (Jon's job when a folder arrives), put the folder at `src/talk/<slug>/` next to `aidan/`. Add its page, MD and QR to `FILES` in `src/talk/talk.js`, copying the three `aidan` lines. Then run `npm test` and push to `main`.
 
 ---
 
@@ -440,9 +437,9 @@ If you're working inside the itabs-this-talk repo itself, put the folder at the 
 - [ ] Page made from the template, with every `{{…}}` replaced and nothing else changed.
 - [ ] The page shows every section of the MD, and the prompt on the page matches the MD exactly.
 - [ ] "Made with iTabs" and Jon's contact details are on the page and at the end of the MD.
-- [ ] The QR code reads `https://talk.itabs.co/<slug>`, and the page shows the same slug.
+- [ ] The QR code reads `https://itabs-this-video.jgwynne7.workers.dev/talk/<slug>`, and the page shows the same address.
 - [ ] The speaker knows to send the folder to Jon and to test the QR code before the talk.
 
 ---
 
-*iTabs This Talk skill · talk.itabs.co · Made with iTabs · Jon · 0421 508 009 · jgwynne7@gmail.com*
+*iTabs This Talk skill · itabs-this-video.jgwynne7.workers.dev/talk · Made with iTabs · Jon · 0421 508 009 · jgwynne7@gmail.com*

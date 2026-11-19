@@ -722,6 +722,8 @@ test("talk: Aidan's page, MD, QR and the talk skill are served under /talk", asy
   const skillText = await skill.text();
   assert.match(skillText, /^---\nname: itabs-this-talk/);
   assert.match(skillText, /\{\{NOTES_CARDS\}\}[\s\S]*id="promptCopy"[\s\S]*\{\{CHECK_ITEMS\}\}/, "skill has the full-notes template");
+  assert.match(skillText, /url = "https:\/\/itabs-this-video\.jgwynne7\.workers\.dev\/talk\/<slug>"/, "skill points speakers at the Worker");
+  assert.match(skillText, /src="\/talk\/\{\{SLUG\}\}\/qr-talk-itabs-\{\{SLUG\}\}\.png"/);
   assert.equal((await get(env(), "/talk/nobody")).status, 404);
   assert.equal((await get(env(), "/skill.md")).headers.get("content-disposition"), 'attachment; filename="itabs-this-video-skill.md"', "video skill unchanged");
 });
