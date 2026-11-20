@@ -1024,8 +1024,10 @@ test("demo: 'Try it now' is first on the home page, video tools follow", async (
   assert.match(html, /Pick a sample, pick your project, and see your own iTabs in seconds\./);
   for (const label of ["Quality gates for agents", "Getting found by AI", "Working at heights", "Welding basics for apprentices", "Electrical safety basics for apprentices"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
   assert.equal((html.match(/<small>Sample · made up for this demo, not official training<\/small>/g) || []).length, 3, "3 made-up samples labelled");
-  for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes(">" + label + "</button>"), label);
-  assert.match(html, />Make my sample<\/button>/);
+  for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
+  assert.match(html, /What do you want to try\?[\s\S]*What's your project about\?/);
+  assert.match(html, />Step 1 of 2</); assert.match(html, /id="tryback" hidden>‹ Back/);
+  assert.doesNotMatch(html, /Make my sample/, "no extra button: tapping a project type opens the deck");
   assert.doesNotMatch(html.slice(tryAt, h1At), /#6c5ce7|#a29bfe|#7c3aed|purple/i);
 });
 
