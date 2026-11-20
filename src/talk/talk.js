@@ -29,7 +29,7 @@ export function withMoreTalks(html, slug) {
   const card = '<section class="card more-talks">\n    <h2>More talks from this meetup</h2>\n    ' + (links ? links + "\n    " : "") + whole + "\n  </section>\n\n  ";
   const css = "<style>.more-talks{display:flex;flex-direction:column;gap:10px}.more-talks h2{margin-bottom:2px}" +
     ".more-talk{display:block;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}" +
-    ".more-talk:active{transform:scale(.98)}.more-speaker{display:block;font-size:13px;font-weight:700;color:var(--accent-soft,#a29bfe)}" +
+    ".more-talk:active{transform:scale(.98)}.more-speaker{display:block;font-size:13px;font-weight:700;color:var(--accent-soft,#60a5fa)}" +
     ".more-title{display:block;font-weight:600;margin-top:2px}.more-title::after{content:\" →\";color:var(--muted)}" +
     ".more-all{display:block;padding:14px 16px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;text-align:center;text-decoration:none}" +
     ".more-all small{display:block;font-weight:400;font-size:13px;color:rgba(255,255,255,.8);margin-top:2px}.more-all:active{transform:scale(.98)}</style>\n";

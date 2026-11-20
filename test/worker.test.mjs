@@ -859,3 +859,11 @@ test("talk deck: retries once on a bad answer, then gives up cleanly", async () 
   const r = await talkPost(e2, { talk: "rye", type: "other" });
   assert.equal(r.status, 502); assert.match((await r.json()).error, /muddled/);
 });
+
+test("no purple on talk pages, the event page, talk decks' link or the skill template", async () => {
+  const PURPLE = /#6c5ce7|#a29bfe|108,\s*92,\s*231|purple|violet/i;
+  for (const path of ["/talk/aidan", "/talk/rye", "/event/claude-for-everyone-perth", "/talk/skill"]) {
+    const text = await (await get(env(), path)).text();
+    assert.doesNotMatch(text, PURPLE, path);
+  }
+});

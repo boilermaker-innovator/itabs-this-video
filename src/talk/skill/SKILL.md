@@ -198,7 +198,7 @@ For example, a big idea section becomes:
 <title>{{TALK_TITLE}} · {{SPEAKER}}</title>
 <meta name="description" content="{{DESCRIPTION}}">
 <style>
-  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#6c5ce7; --accent-soft:#a29bfe; --ok:#2ecc71; }
+  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#2563eb; --accent-soft:#60a5fa; --ok:#2ecc71; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif; min-height:100vh; display:flex; justify-content:center; padding:24px 16px; }
   main { width:100%; max-width:430px; display:flex; flex-direction:column; gap:20px; }
@@ -208,7 +208,7 @@ For example, a big idea section becomes:
   .by { color:var(--muted); }
   .quote { margin-top:14px; font-size:18px; font-weight:600; }
   .lead { margin-top:14px; color:var(--muted); font-size:15px; }
-  .box { margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(108,92,231,.14); border-left:3px solid var(--accent); font-size:15px; }
+  .box { margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(37,99,235,.14); border-left:3px solid var(--accent); font-size:15px; }
   .box strong { color:var(--accent-soft); }
   .note { margin-top:12px; font-size:13px; color:var(--muted); }
   .buttons { display:flex; flex-direction:column; gap:10px; }

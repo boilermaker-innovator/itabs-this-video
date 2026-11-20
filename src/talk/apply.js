@@ -226,7 +226,7 @@ export function withApplyBox(page, slug) {
 #ap-more:focus{outline:2px solid var(--accent);outline-offset:1px}
 .ap-go{margin-top:14px;background:var(--accent);border-color:var(--accent)}.ap-go[disabled]{opacity:.7;cursor:wait}
 .ap-msg{margin-top:10px;font-size:14px;font-weight:600;text-align:center}.ap-msg:empty{display:none}.ap-msg.err{color:#ff8a8a}
-.ap-msg a{color:var(--accent-soft,#a29bfe)}
+.ap-msg a{color:var(--accent-soft,#60a5fa)}
 .ap-note{margin-top:10px;font-size:12px;color:var(--muted)}.ap-note a{color:inherit}
 </style>
 `;

@@ -73,7 +73,7 @@ export function renderEvent(id) {
 <meta property="og:title" content="${esc(ev.name)}">
 <meta property="og:description" content="${esc(desc)}">
 <style>
-  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#6c5ce7; --accent-soft:#a29bfe; --ok:#2ecc71; }
+  :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#2563eb; --accent-soft:#60a5fa; --ok:#2ecc71; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; gap:20px; padding:24px 16px; }
   main { width:100%; max-width:430px; display:flex; flex-direction:column; gap:20px; }
@@ -86,7 +86,7 @@ export function renderEvent(id) {
   h2 { font-size:21px; line-height:1.25; margin-bottom:12px; }
   .talks { display:flex; flex-direction:column; gap:10px; }
   .talk { display:block; padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); text-decoration:none; }
-  a.talk { border-color:rgba(108,92,231,.6); }
+  a.talk { border-color:rgba(37,99,235,.6); }
   a.talk:active { transform:scale(.98); }
   .who { display:block; font-size:13px; font-weight:700; color:var(--accent-soft); }
   .what { display:block; font-size:17px; font-weight:600; margin-top:2px; }
