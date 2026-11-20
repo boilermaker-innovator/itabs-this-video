@@ -19,7 +19,14 @@ const NOTES = {
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const HEADERS = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "cache-control": "public, max-age=300" };
 
-export function demoRoute(request, url, h) {
+// Counts sample decks opened, one number per day ("stats:demo:<date>"), for /stats. Never blocks the page.
+async function countDemo(env) {
+  try { if (!env || !env.DECKS) return; let tz = String(env.STATS_TIMEZONE || "Australia/Perth").trim(); try { new Intl.DateTimeFormat("en", { timeZone: tz }); } catch { tz = "Australia/Perth"; }
+    const k = "stats:demo:" + new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    await env.DECKS.put(k, String((parseInt((await env.DECKS.get(k)) || "0", 10) || 0) + 1)); } catch (e) { console.log("demo count failed", String(e)); }
+}
+
+export async function demoRoute(request, url, h, env) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   const head = request.method === "HEAD";
   let m = url.pathname.match(/^\/demo\/([a-z]+)\/notes\.md$/);
@@ -29,6 +36,7 @@ export function demoRoute(request, url, h) {
   if (!m) return null;
   const data = demoDeck(m[1], m[2]);
   if (!data) return h.html(h.messagePage("Sample not found", "Pick a sample and a project type on the home page."), 404);
+  if (!head) await countDemo(env);
   return new Response(head ? null : demoPage(data, m[1], m[2], url.origin, h), { headers: { ...HEADERS, "content-type": "text/html; charset=utf-8" } });
 }
 

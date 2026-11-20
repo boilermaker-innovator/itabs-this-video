@@ -32,31 +32,45 @@ ${body}
 
 export function renderLanding(origin) {
   const tags = shareTags({
-    title: "iTabs: take-home lessons from any talk, lesson or video",
-    description: "Pick a sample, pick your project, and see your own iTabs in seconds. Or make one from any YouTube video.",
+    title: "Snap your slides, get an iTabs.",
+    description: "Turn any talk or lesson into a take-home lesson with gold and blue i-buttons.",
     url: origin + "/", image: origin + "/og.png", alt: "iTabs",
   });
   const css = DEMO_CSS + `
-.go2{display:flex;flex-direction:column;gap:10px;margin-top:22px}
-.big{display:flex;align-items:center;gap:14px;min-height:72px;padding:16px 18px;border-radius:16px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);transition:border-color .15s,transform .1s}
-.big:hover{border-color:#2563eb}.big:active{transform:scale(.98)}
-.big .tx{flex:1;min-width:0}.big b{display:block;font-size:18px;line-height:1.25}.big small{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
-.big::after{content:"›";font-size:26px;line-height:1;color:var(--muted)}
-.big.main{background:#2563eb;border-color:#2563eb;color:#fff}.big.main small{color:rgba(255,255,255,.85)}.big.main::after{color:#fff}
-.big:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
-.beta{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:99px;background:#13244d;border:1px solid #2563eb;color:#93c5fd;font:600 11px/1.6 inherit;letter-spacing:.04em;vertical-align:3px;font-style:normal;text-transform:uppercase}
-@media (min-width:700px){.big{min-height:80px}.big b{font-size:19px}}
+h1{font-size:34px;line-height:1.08;letter-spacing:-.02em;margin:20px 0 10px;text-wrap:balance}
+.lead{color:var(--muted);font-size:17px;line-height:1.45;margin:0 0 22px}
+.lead .g,.lead .b{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:1px;margin:0 3px}
+.lead .g{background:var(--gold)}.lead .b{background:#60a5fa}
+.main{display:flex;align-items:center;gap:14px;min-height:84px;padding:18px 20px;border-radius:18px;background:#2563eb;color:#fff;text-decoration:none;transition:transform .1s,background .15s}
+.main:hover{background:#1d4ed8}.main:active{transform:scale(.98)}.main:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.main .tx{flex:1;min-width:0}.main b{display:block;font-size:21px;line-height:1.2}.main small{display:block;font-size:14px;color:rgba(255,255,255,.88);margin-top:3px}
+.main::after{content:"›";font-size:30px;line-height:1}
+.beta{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;line-height:1.6;letter-spacing:.05em;vertical-align:4px;text-transform:uppercase}
+.sample{display:block;width:100%;margin-top:12px;padding:12px;border:0;border-radius:14px;background:none;color:#60a5fa;font:600 16px inherit;font-family:inherit;cursor:pointer}
+.sample:hover{text-decoration:underline}.sample:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.demo[hidden]{display:none}
+.demo .try h2,.demo .try .tl{display:none}
+@media (min-width:700px){h1{font-size:40px}.main{min-height:92px}.main b{font-size:22px}}
 `;
-  // The demo section ends with an "Or use any YouTube video" divider meant for the old page; drop it here.
+  // The existing two-step demo, without its own heading (the page has one) or the old divider.
   const demo = demoSection().replace(/\n <p class="or">[^<]*<\/p>\n?$/, "\n");
-  return page({ title: "iTabs", tags, css, body: `
+  return page({ title: "iTabs · Snap your slides, get an iTabs", tags, css, body: `
  <div class="brand"><i>i</i>iTabs</div>
+ <h1>Snap your slides, get an iTabs.</h1>
+ <p class="lead">Turn any talk or lesson into a take-home lesson with <span class="g"></span>gold and <span class="b"></span>blue i-buttons.</p>
+ <a class="main" href="/make"><span class="tx"><b>Make one from your slides<span class="beta">Beta</span></b><small>Snap photos of the slides, pick your project, done</small></span></a>
+ <button type="button" class="sample" id="trysample" aria-expanded="false" aria-controls="demo">Not sure? Try a sample first</button>
+ <div class="demo" id="demo" hidden>
 ${demo}
- <nav class="go2" aria-label="More iTabs">
-  <a class="big main" href="/video"><span class="tx"><b>Make one from a YouTube video</b><small>Paste a link, say who's watching, get cards made for you</small></span></a>
-  <a class="big" href="/make"><span class="tx"><b>Make one from your own slides <em class="beta">Beta</em></b><small>Add photos of your slides or notes, get a deck and take-home notes</small></span></a>
-  <a class="big" href="/events"><span class="tx"><b>Talks and events</b><small>Take-home lessons from every talk on the night</small></span></a>
- </nav>` });
+ </div>
+ <script>
+ (function(){var b=document.getElementById('trysample'),d=document.getElementById('demo');
+ function open(scroll){if(!d.hidden)return;d.hidden=false;b.setAttribute('aria-expanded','true');b.textContent='Pick a sample below';
+  window.dispatchEvent(new Event('resize'));if(scroll)d.scrollIntoView({behavior:'smooth',block:'start'})}
+ b.addEventListener('click',function(){if(d.hidden)open(true);else d.scrollIntoView({behavior:'smooth',block:'start'})});
+ if(location.hash==='#try')open(false);
+ })();
+ </script>` });
 }
 
 // Events, newest first (by each event's "iso" date).

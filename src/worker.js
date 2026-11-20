@@ -66,7 +66,7 @@ export default {
       }
       if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
       if (url.pathname.startsWith("/m/") && !url.pathname.endsWith("/card.png")) { const mk = await makeRoute(request, url, env, TALK_HELPERS); if (mk) return mk; }
-      if (url.pathname.startsWith("/demo/")) { const d = demoRoute(request, url, TALK_HELPERS); if (d) return d; }
+      if (url.pathname.startsWith("/demo/")) { const d = await demoRoute(request, url, TALK_HELPERS, env); if (d) return d; }
       if (url.pathname === "/rnd" || url.pathname.startsWith("/rnd/")) { const r = await rndRoute(request, url, env, TALK_HELPERS); if (r) return r; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
@@ -567,9 +567,18 @@ async function stats(request, env) {
     .sort((a, b) => (a.metadata.created < b.metadata.created ? 1 : -1))
     .slice(0, 20);
   const recentFb = await Promise.all(recent.map((k) => env.DECKS.get("fb:" + k.name.slice(5)).then((x) => JSON.parse(x || "{}"))));
+  // Talk pages' "Make my deck", /make slide uploads and demo opens (each saved with its date, no personal info).
+  const listAll = async (prefix) => { const out = []; let c; for (let i = 0; i < 10; i++) { const pg = await env.DECKS.list({ prefix, cursor: c }); out.push(...pg.keys); if (pg.list_complete) break; c = pg.cursor; } return out; };
+  const [talkKeys, makeKeys, demoKeys] = await Promise.all([listAll("talkdeck:"), listAll("mk:"), listAll("stats:demo:")]);
+  const span = (keys) => { const d = keys.filter((k) => k.metadata && k.metadata.created); return { today: d.filter((k) => localDay(k.metadata.created) === today).length, week: d.filter((k) => localDay(k.metadata.created) >= weekStart).length, total: keys.length }; };
+  const demoDays = await Promise.all(demoKeys.map((k) => env.DECKS.get(k.name).then((v) => [k.name.slice(11), parseInt(v || "0", 10) || 0])));
+  const demo = { today: 0, week: 0, total: 0, since: demoDays.map((d) => d[0]).sort()[0] || "" };
+  for (const [d, n] of demoDays) { demo.total += n; if (d === today) demo.today += n; if (d >= weekStart) demo.week += n; }
+  const byTalk = {}; for (const k of talkKeys) { const t = (k.metadata && k.metadata.talk) || "?"; byTalk[t] = (byTalk[t] || 0) + 1; }
   return html(statsPage(null, {
     today: todayCount, week: weekCount, study: studyCount, tz, total: decks.length, up: fb.up || 0, down: fb.down || 0, yes: fb.yes || 0, notyet: fb.notyet || 0,
     recent: recent.map((k, i) => ({ id: k.name.slice(5), ...k.metadata, fb: recentFb[i] })),
+    talk: { ...span(talkKeys), byTalk }, make: span(makeKeys), demo,
   }), 200, noStore);
 }
 
@@ -602,6 +611,8 @@ function statsPage(error, s) {
   const body = s
     ? `<div class="g3">${tile(s.today, "Today")}${tile(s.week, "This week")}${tile(s.total, "Total")}</div>
 <p class="tz">Decks made · ${e(s.tz)} time · week starts Monday · 📚 ${s.study} Study mode</p>
+${s.talk ? `<h2>Talks and slides</h2><div class="g3">${tile(s.make.total, "Slide uploads (/make)")}${tile(s.talk.total, "Make my deck (talk pages)")}${tile(s.demo.total, "Sample decks opened")}</div>
+<p class="tz">Slide uploads: ${s.make.today} today, ${s.make.week} this week · Make my deck: ${s.talk.today} today, ${s.talk.week} this week${Object.keys(s.talk.byTalk).length ? " (" + Object.entries(s.talk.byTalk).map(([k, n]) => e(k) + " " + n).join(", ") + ")" : ""} · Sample decks: ${s.demo.today} today, ${s.demo.week} this week${s.demo.since ? ", counted since " + e(s.demo.since) : ", counting starts with the first one"}</p>` : ""}
 <h2>Feedback</h2><div class="g">${tile(s.up, "👍 Useful")}${tile(s.down, "👎 Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
 <h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} · ${e(r.lang)}${r.study ? ` · <b class="st">📚 Study${r.quiz ? " + quiz" : ""}</b>` : ""}${r.mode === "other" ? " · for someone else" : ""} · 👍${r.fb.up || 0} 👎${r.fb.down || 0} ✅${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">▶ youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
 <a class="btn" href="/stats">Lock</a>`

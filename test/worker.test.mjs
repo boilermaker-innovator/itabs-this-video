@@ -1016,27 +1016,24 @@ test("demo: all 25 sample decks pass the same checks as AI decks", async () => {
   assert.equal(a.cards[0].buttons[1].text, b.cards[0].buttons[1].text, "gold stays the same");
 });
 
-test("home page: Try it now demo first, then the two big buttons; the video tool lives at /video", async () => {
+test("home page: the simple MVP, with the demo behind 'Try a sample first'", async () => {
   const html = await (await get(env(), "/")).text();
-  const tryAt = html.indexOf('id="try"'), vidAt = html.indexOf('href="/video"'), evAt = html.indexOf('href="/events"');
-  assert.ok(tryAt > 0 && tryAt < vidAt && vidAt < evAt, "demo, then the two buttons");
-  assert.match(html, /<b>Make one from a YouTube video<\/b>/); assert.match(html, /<b>Talks and events<\/b>/);
-  assert.doesNotMatch(html, /id="form"|Or use any YouTube video/, "no video form on the home page");
-  assert.match(html, /Turn any talk or lesson into a take-home lesson\./);
+  assert.match(html, /<h1>Snap your slides, get an iTabs\.<\/h1>/);
+  assert.match(html, /Turn any talk or lesson into a take-home lesson with <span class="g"><\/span>gold and <span class="b"><\/span>blue i-buttons\./);
+  assert.match(html, /<a class="main" href="\/make"><span class="tx"><b>Make one from your slides/);
+  assert.match(html, /<button type="button" class="sample" id="trysample"[^>]*>Not sure\? Try a sample first<\/button>/);
+  assert.ok(html.indexOf('href="/make"') < html.indexOf('id="trysample"') && html.indexOf('id="trysample"') < html.indexOf('id="try"'), "main button, then sample link, then the demo");
+  assert.match(html, /<div class="demo" id="demo" hidden>/, "demo starts closed");
+  assert.match(html, /What do you want to try\?[\s\S]*What's your project about\?/, "the existing two-step demo");
   for (const label of ["Quality gates for agents", "Getting found by AI", "Working at heights", "Welding basics for apprentices", "Electrical safety basics for apprentices"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
-  assert.equal((html.match(/<small>Sample · made up for this demo, not official training<\/small>/g) || []).length, 3, "3 made-up samples labelled");
-  for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
-  assert.match(html, /What do you want to try\?[\s\S]*What's your project about\?/);
-  assert.match(html, />Step 1 of 2</); assert.match(html, /id="tryback" hidden>‹ Back/);
-  assert.doesNotMatch(html, /Make my sample/);
+  assert.equal((html.match(/<small>Sample · made up for this demo, not official training<\/small>/g) || []).length, 3);
+  assert.doesNotMatch(html, /href="\/video"|href="\/events"|Make one from a YouTube video|Talks and events/, "video and events buttons removed");
   assert.doesNotMatch(html, /#6c5ce7|#a29bfe|#7c3aed|purple/i);
-  const og = ogOf(html); assert.equal(og["og:url"], "https://x.dev/"); assert.equal(og["og:image"], "https://x.dev/og.png");
+  const og = ogOf(html); assert.equal(og["og:title"], "Snap your slides, get an iTabs."); assert.equal(og["og:url"], "https://x.dev/");
   const video = await (await get(env(), "/video")).text();
-  assert.ok(video.indexOf('class="homelink" href="/">‹ Home') > 0 && video.indexOf('class="homelink"') < video.indexOf('id="form"'), "/video has Home at the top and the form");
-  assert.doesNotMatch(video, /id="try"/, "demo is only on the home page");
-  assert.equal((await get(env(), "/video/")).status, 200);
+  assert.ok(video.includes('id="form"') && video.includes('class="homelink"'), "/video still works");
+  assert.doesNotMatch(video, /id="try"/);
 });
-
 test("events page lists every event newest first, and pages have Home links", async () => {
   const html = await (await get(env(), "/events")).text();
   const ade = html.indexOf('href="/event/claude-in-motion-adelaide"'), per = html.indexOf('href="/event/claude-for-everyone-perth"');
@@ -1219,14 +1216,22 @@ test("make: incomplete notes get one retry; a second miss fails cleanly", async 
   assert.equal(r.status, 502); assert.match((await r.json()).error, /couldn't make full notes/);
 });
 
-test("home has the third button, sample decks link to /make, and /rnd lists the tests", async () => {
-  const home = await (await get(env(), "/")).text();
-  const v = home.indexOf('href="/video"'), mk = home.indexOf('href="/make"'), ev = home.indexOf('href="/events"');
-  assert.ok(v > 0 && mk > v && ev > mk, "video, then slides, then events");
-  assert.match(home, /Make one from your own slides <em class="beta">Beta<\/em>/);
-  const rnd = await get(env(), "/rnd");
-  assert.equal(rnd.status, 200);
-  const rh = await rnd.text();
+test("pages not on the home page keep working, and /rnd lists the tests", async () => {
+  for (const p of ["/video", "/events", "/talk/aidan", "/talk/rye", "/event/claude-for-everyone-perth", "/event/claude-in-motion-adelaide", "/rnd", "/rnd/share-card", "/demo/rye/shop", "/make"]) assert.equal((await get(env(), p)).status, 200, p);
+  const rh = await (await get(env(), "/rnd")).text();
   assert.match(rh, /href="\/rnd\/share-card"><span class="tag">Test · not live<\/span><b>Share card<\/b>/);
-  assert.match(rh, /noindex/);
+});
+
+test("stats: counts slide uploads, Make my deck and sample decks opened", async () => {
+  const e = { ...env(), STATS_PIN: "4321" };
+  geminiQueue.push(goodDeck(6)); await talkPost(e, { talk: "rye", type: "shop" });
+  geminiQueue.push(goodDeck(6)); await talkPost(e, { talk: "aidan", type: "cafe" });
+  geminiQueue.push(NOTES, goodDeck(6)); await makePost(e, okMeta);
+  for (const p of ["/demo/rye/shop", "/demo/welding/trades", "/demo/aidan/cafe"]) await get(e, p);
+  const html = await (await worker.fetch(new Request("https://x.dev/stats", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "CF-Connecting-IP": "2.2.2.2" }, body: "pin=4321" }), e)).text();
+  assert.match(html, /<b>1<\/b><span>Slide uploads \(\/make\)<\/span>/);
+  assert.match(html, /<b>2<\/b><span>Make my deck \(talk pages\)<\/span>/);
+  assert.match(html, /<b>3<\/b><span>Sample decks opened<\/span>/);
+  assert.match(html, /\(rye 1, aidan 1\)/); assert.match(html, /counted since \d{4}-\d{2}-\d{2}/);
+  assert.match(html, /<b>0<\/b><span>Total<\/span>/, "video deck count unchanged (no video decks here)");
 });

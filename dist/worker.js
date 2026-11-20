@@ -2921,7 +2921,22 @@ var NOTES = {
 };
 var esc4 = (s) => String(s).replace(/[&<>"']/g, (c2) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c2]);
 var HEADERS = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "cache-control": "public, max-age=300" };
-function demoRoute(request, url, h) {
+async function countDemo(env) {
+  try {
+    if (!env || !env.DECKS) return;
+    let tz = String(env.STATS_TIMEZONE || "Australia/Perth").trim();
+    try {
+      new Intl.DateTimeFormat("en", { timeZone: tz });
+    } catch {
+      tz = "Australia/Perth";
+    }
+    const k = "stats:demo:" + new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(/* @__PURE__ */ new Date());
+    await env.DECKS.put(k, String((parseInt(await env.DECKS.get(k) || "0", 10) || 0) + 1));
+  } catch (e) {
+    console.log("demo count failed", String(e));
+  }
+}
+async function demoRoute(request, url, h, env) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   const head = request.method === "HEAD";
   let m = url.pathname.match(/^\/demo\/([a-z]+)\/notes\.md$/);
@@ -2934,6 +2949,7 @@ function demoRoute(request, url, h) {
   if (!m) return null;
   const data = demoDeck(m[1], m[2]);
   if (!data) return h.html(h.messagePage("Sample not found", "Pick a sample and a project type on the home page."), 404);
+  if (!head) await countDemo(env);
   return new Response(head ? null : demoPage(data, m[1], m[2], url.origin, h), { headers: { ...HEADERS, "content-type": "text/html; charset=utf-8" } });
 }
 function demoPage(data, sample, type, origin, h) {
@@ -3066,32 +3082,46 @@ ${body}
 }
 function renderLanding(origin) {
   const tags = shareTags({
-    title: "iTabs: take-home lessons from any talk, lesson or video",
-    description: "Pick a sample, pick your project, and see your own iTabs in seconds. Or make one from any YouTube video.",
+    title: "Snap your slides, get an iTabs.",
+    description: "Turn any talk or lesson into a take-home lesson with gold and blue i-buttons.",
     url: origin + "/",
     image: origin + "/og.png",
     alt: "iTabs"
   });
   const css = DEMO_CSS + `
-.go2{display:flex;flex-direction:column;gap:10px;margin-top:22px}
-.big{display:flex;align-items:center;gap:14px;min-height:72px;padding:16px 18px;border-radius:16px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);transition:border-color .15s,transform .1s}
-.big:hover{border-color:#2563eb}.big:active{transform:scale(.98)}
-.big .tx{flex:1;min-width:0}.big b{display:block;font-size:18px;line-height:1.25}.big small{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
-.big::after{content:"\u203A";font-size:26px;line-height:1;color:var(--muted)}
-.big.main{background:#2563eb;border-color:#2563eb;color:#fff}.big.main small{color:rgba(255,255,255,.85)}.big.main::after{color:#fff}
-.big:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
-.beta{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:99px;background:#13244d;border:1px solid #2563eb;color:#93c5fd;font:600 11px/1.6 inherit;letter-spacing:.04em;vertical-align:3px;font-style:normal;text-transform:uppercase}
-@media (min-width:700px){.big{min-height:80px}.big b{font-size:19px}}
+h1{font-size:34px;line-height:1.08;letter-spacing:-.02em;margin:20px 0 10px;text-wrap:balance}
+.lead{color:var(--muted);font-size:17px;line-height:1.45;margin:0 0 22px}
+.lead .g,.lead .b{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:1px;margin:0 3px}
+.lead .g{background:var(--gold)}.lead .b{background:#60a5fa}
+.main{display:flex;align-items:center;gap:14px;min-height:84px;padding:18px 20px;border-radius:18px;background:#2563eb;color:#fff;text-decoration:none;transition:transform .1s,background .15s}
+.main:hover{background:#1d4ed8}.main:active{transform:scale(.98)}.main:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.main .tx{flex:1;min-width:0}.main b{display:block;font-size:21px;line-height:1.2}.main small{display:block;font-size:14px;color:rgba(255,255,255,.88);margin-top:3px}
+.main::after{content:"\u203A";font-size:30px;line-height:1}
+.beta{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:rgba(255,255,255,.2);color:#fff;font-size:11px;font-weight:700;line-height:1.6;letter-spacing:.05em;vertical-align:4px;text-transform:uppercase}
+.sample{display:block;width:100%;margin-top:12px;padding:12px;border:0;border-radius:14px;background:none;color:#60a5fa;font:600 16px inherit;font-family:inherit;cursor:pointer}
+.sample:hover{text-decoration:underline}.sample:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.demo[hidden]{display:none}
+.demo .try h2,.demo .try .tl{display:none}
+@media (min-width:700px){h1{font-size:40px}.main{min-height:92px}.main b{font-size:22px}}
 `;
   const demo = demoSection().replace(/\n <p class="or">[^<]*<\/p>\n?$/, "\n");
-  return page2({ title: "iTabs", tags, css, body: `
+  return page2({ title: "iTabs \xB7 Snap your slides, get an iTabs", tags, css, body: `
  <div class="brand"><i>i</i>iTabs</div>
+ <h1>Snap your slides, get an iTabs.</h1>
+ <p class="lead">Turn any talk or lesson into a take-home lesson with <span class="g"></span>gold and <span class="b"></span>blue i-buttons.</p>
+ <a class="main" href="/make"><span class="tx"><b>Make one from your slides<span class="beta">Beta</span></b><small>Snap photos of the slides, pick your project, done</small></span></a>
+ <button type="button" class="sample" id="trysample" aria-expanded="false" aria-controls="demo">Not sure? Try a sample first</button>
+ <div class="demo" id="demo" hidden>
 ${demo}
- <nav class="go2" aria-label="More iTabs">
-  <a class="big main" href="/video"><span class="tx"><b>Make one from a YouTube video</b><small>Paste a link, say who's watching, get cards made for you</small></span></a>
-  <a class="big" href="/make"><span class="tx"><b>Make one from your own slides <em class="beta">Beta</em></b><small>Add photos of your slides or notes, get a deck and take-home notes</small></span></a>
-  <a class="big" href="/events"><span class="tx"><b>Talks and events</b><small>Take-home lessons from every talk on the night</small></span></a>
- </nav>` });
+ </div>
+ <script>
+ (function(){var b=document.getElementById('trysample'),d=document.getElementById('demo');
+ function open(scroll){if(!d.hidden)return;d.hidden=false;b.setAttribute('aria-expanded','true');b.textContent='Pick a sample below';
+  window.dispatchEvent(new Event('resize'));if(scroll)d.scrollIntoView({behavior:'smooth',block:'start'})}
+ b.addEventListener('click',function(){if(d.hidden)open(true);else d.scrollIntoView({behavior:'smooth',block:'start'})});
+ if(location.hash==='#try')open(false);
+ })();
+ <\/script>` });
 }
 function renderEvents(origin) {
   const list = Object.entries(EVENTS).sort((a, b) => String(b[1].iso || "").localeCompare(String(a[1].iso || "")));
@@ -3776,7 +3806,7 @@ var worker_default = {
         if (mk) return mk;
       }
       if (url.pathname.startsWith("/demo/")) {
-        const d = demoRoute(request, url, TALK_HELPERS);
+        const d = await demoRoute(request, url, TALK_HELPERS, env);
         if (d) return d;
       }
       if (url.pathname === "/rnd" || url.pathname.startsWith("/rnd/")) {
@@ -4242,6 +4272,34 @@ async function stats(request, env) {
   const studyCount = dated.filter((k) => k.metadata.study).length;
   const recent = dated.sort((a, b) => a.metadata.created < b.metadata.created ? 1 : -1).slice(0, 20);
   const recentFb = await Promise.all(recent.map((k) => env.DECKS.get("fb:" + k.name.slice(5)).then((x) => JSON.parse(x || "{}"))));
+  const listAll = async (prefix) => {
+    const out = [];
+    let c2;
+    for (let i = 0; i < 10; i++) {
+      const pg = await env.DECKS.list({ prefix, cursor: c2 });
+      out.push(...pg.keys);
+      if (pg.list_complete) break;
+      c2 = pg.cursor;
+    }
+    return out;
+  };
+  const [talkKeys, makeKeys, demoKeys] = await Promise.all([listAll("talkdeck:"), listAll("mk:"), listAll("stats:demo:")]);
+  const span = (keys) => {
+    const d = keys.filter((k) => k.metadata && k.metadata.created);
+    return { today: d.filter((k) => localDay(k.metadata.created) === today).length, week: d.filter((k) => localDay(k.metadata.created) >= weekStart).length, total: keys.length };
+  };
+  const demoDays = await Promise.all(demoKeys.map((k) => env.DECKS.get(k.name).then((v) => [k.name.slice(11), parseInt(v || "0", 10) || 0])));
+  const demo = { today: 0, week: 0, total: 0, since: demoDays.map((d) => d[0]).sort()[0] || "" };
+  for (const [d, n] of demoDays) {
+    demo.total += n;
+    if (d === today) demo.today += n;
+    if (d >= weekStart) demo.week += n;
+  }
+  const byTalk = {};
+  for (const k of talkKeys) {
+    const t = k.metadata && k.metadata.talk || "?";
+    byTalk[t] = (byTalk[t] || 0) + 1;
+  }
   return html(statsPage(null, {
     today: todayCount,
     week: weekCount,
@@ -4252,7 +4310,10 @@ async function stats(request, env) {
     down: fb.down || 0,
     yes: fb.yes || 0,
     notyet: fb.notyet || 0,
-    recent: recent.map((k, i) => ({ id: k.name.slice(5), ...k.metadata, fb: recentFb[i] }))
+    recent: recent.map((k, i) => ({ id: k.name.slice(5), ...k.metadata, fb: recentFb[i] })),
+    talk: { ...span(talkKeys), byTalk },
+    make: span(makeKeys),
+    demo
   }), 200, noStore);
 }
 function statsTimeZone(env) {
@@ -4286,6 +4347,8 @@ function statsPage(error, s) {
   const tile = (n, label) => `<div class="t"><b>${n}</b><span>${label}</span></div>`;
   const body = s ? `<div class="g3">${tile(s.today, "Today")}${tile(s.week, "This week")}${tile(s.total, "Total")}</div>
 <p class="tz">Decks made \xB7 ${e(s.tz)} time \xB7 week starts Monday \xB7 \u{1F4DA} ${s.study} Study mode</p>
+${s.talk ? `<h2>Talks and slides</h2><div class="g3">${tile(s.make.total, "Slide uploads (/make)")}${tile(s.talk.total, "Make my deck (talk pages)")}${tile(s.demo.total, "Sample decks opened")}</div>
+<p class="tz">Slide uploads: ${s.make.today} today, ${s.make.week} this week \xB7 Make my deck: ${s.talk.today} today, ${s.talk.week} this week${Object.keys(s.talk.byTalk).length ? " (" + Object.entries(s.talk.byTalk).map(([k, n]) => e(k) + " " + n).join(", ") + ")" : ""} \xB7 Sample decks: ${s.demo.today} today, ${s.demo.week} this week${s.demo.since ? ", counted since " + e(s.demo.since) : ", counting starts with the first one"}</p>` : ""}
 <h2>Feedback</h2><div class="g">${tile(s.up, "\u{1F44D} Useful")}${tile(s.down, "\u{1F44E} Not useful")}${tile(s.yes, "Did something")}${tile(s.notyet, "Not yet")}</div>
 <h2>Latest decks</h2>${s.recent.length ? `<ul>${s.recent.map((r) => `<li><a href="/d/${e(r.id)}">${e(r.title || r.videoId)}</a><small>${e(localTime(r.created, s.tz))} \xB7 ${e(r.lang)}${r.study ? ` \xB7 <b class="st">\u{1F4DA} Study${r.quiz ? " + quiz" : ""}</b>` : ""}${r.mode === "other" ? " \xB7 for someone else" : ""} \xB7 \u{1F44D}${r.fb.up || 0} \u{1F44E}${r.fb.down || 0} \u2705${r.fb.yes || 0}</small>${r.videoId ? `<a class="yt" href="https://youtu.be/${e(r.videoId)}" target="_blank" rel="noopener">\u25B6 youtu.be/${e(r.videoId)}</a>` : ""}</li>`).join("")}</ul>` : `<p class="m">No decks yet.</p>`}
 <a class="btn" href="/stats">Lock</a>` : `<form method="post"><label for="pin">PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>${error ? `<p class="err">${e(error)}</p>` : ""}<button class="btn">Show stats</button></form>`;
