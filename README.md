@@ -80,19 +80,19 @@ The page shows decks made **today, this week (from Monday) and in total**, in Pe
 
 The counts come from the decks themselves: each deck is saved in KV with only its creation time, YouTube video ID, language and title, and no personal info. To use another time zone, add a **Text** variable `STATS_TIMEZONE` (for example `Australia/Sydney`).
 
-## Part G (optional): Show an example deck on the main page
+## Part G (optional): Show an example deck on the video page
 
 1. Make a deck you like and copy its link, e.g. `https://itabs-this-video.yourname.workers.dev/d/aB3dE6fG`.
 2. In the Worker, tap **Settings** → **Variables and Secrets** → **+ Add**.
 3. **Type:** **Text** (not Secret). **Variable name:** `FEATURED_DECK`. **Value:** the deck link, or just the ID after `/d/` (e.g. `aB3dE6fG`).
-4. Tap **Deploy**. The main page now shows a swipeable example under "How it works".
+4. Tap **Deploy**. The video page (`/video`) now shows a swipeable example under "How it works".
 
 To change it, edit the value and tap **Deploy**. To hide it, delete the variable. It survives GitHub redeploys, because `keep_vars = true` is set in `wrangler.toml`.
 
 ## Try it
 
 38. On the Worker's page, tap the **Visit** link. It ends in `.workers.dev`, for example `itabs-this-video.yourname.workers.dev`.
-39. Paste a public YouTube link (under 60 minutes). Type who's watching and tap **Make my iTabs**.
+39. Tap **Make one from a YouTube video** (or go to `/video`). Paste a public YouTube link (under 60 minutes). Type who's watching and tap **Make my iTabs**.
 40. Wait 20 to 60 seconds. You'll get your deck link, a **Copy link** button and **Make another**.
 
 ### If something goes wrong
@@ -124,12 +124,12 @@ Old workers.dev links keep working.
 
 | Feature | How it works |
 |---|---|
-| Link previews | Deck links show the video thumbnail, the title and "Personalised for …" when shared. The main page has its own preview image (`src/og.png`). |
+| Link previews | Deck links show a share card ("My takeaway from …", see Share cards below). The home and video pages use `src/og.png`. |
 | For me / For someone else | A toggle above the description. "For someone else" turns the deck into a gift: buttons read "For Kristian". |
 | Share button | On every deck. It opens the phone's share menu, and copies the link if there isn't one. |
 | Feedback | On the last card: "Was this useful?" 👍/👎, then "Did you do something after it?". One answer per browser. Only counts are stored, nothing personal. |
-| Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the main page. To update it, edit `src/skill.md` on GitHub. |
-| Make your own | A link in every deck footer, back to the main page. |
+| Skill download | `/skill.md`, plus **Download skill** / **Copy skill** buttons on the video page (`/video`). To update it, edit `src/skill.md` on GitHub. |
+| Make your own | A link in every video deck footer, to the video page (`/video`). |
 | Study mode | A switch under "Who's watching?". Blue buttons become "For your test": what's likely to be tested, how to remember it, and common mistakes. After the last card comes a 5-question quiz built only from facts in the video: shuffled answers, instant right/wrong with a reason, ▶ timestamps, a score and Try again. If the AI's quiz is missing or broken, the deck is saved without it. Shown in /stats with 📚. |
 | Video inside the deck | Tapping a ▶ timestamp (or **Watch video**) opens a player pinned at the top, at that second, and the deck stays fully usable. Two sizes: **Big**, and **🎧 Listen**, a slim strip with a small visible video, the time, play/pause, ⤢ expand and ✕. The size you pick is remembered, and other timestamps seek the same player without changing it. If the creator blocks embedding, an **Open in YouTube** button shows instead. The skill uses the same template. |
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
@@ -139,6 +139,7 @@ Old workers.dev links keep working.
 | R&D: share card | `/rnd/share-card` (not linked from anywhere live). Tests sharing talk decks: 1200×630 preview images per project type (Rye's talk, drawn by `node scripts/make-share-images.mjs`), an example deck at `/rnd/share-card/example`, a share-ready view of any real Rye deck at `/rnd/share-card/d/<id>`, full Open Graph and Twitter tags, and a Share my deck sheet (Facebook, LinkedIn, Copy link). Code in `src/rnd/`. |
 | Share cards | Link previews (1200×630 PNG) drawn by the Worker from one template (`src/share/`): video decks get "My takeaway from <video title>" with the channel name at `/d/<id>/card.png`, and event pages get "Every talk from <event>" with city, date and talk count at `/event/<id>/card.png`. Both pages have full Open Graph and Twitter card tags. No words the reader typed are used. Each card is drawn once (about 10–20 ms) and then kept in KV. The fixed parts and letter shapes are made by `python3 scripts/make-card-assets.py`. Talk deck cards (R&D) still use their own images. |
 | Try it now (demo) | First on the home page: pick one of 5 samples (Aidan's and Rye's talks, plus three made-up samples: a working-at-heights toolbox talk and lessons on welding and electrical safety basics) and a project type, then **Make my sample** opens `/demo/<sample>/<type>`. All 25 decks are ready-made in `src/demo/decks.js` (checked with `validateDeck`), so there's no AI call and no cost per visitor. Each has its own share card and preview tags. The made-up samples' notes are in `src/demo/notes/` (served at `/demo/<sample>/notes.md`). The end-of-deck **Upload your slides** button says Coming soon until `UPLOAD_READY` in `src/demo/demo.js` is set to true. |
+| Pages | `/` home: the Try it now demo, then **Make one from a YouTube video** (`/video`, the video tool) and **Talks and events** (`/events`, every event from `src/talk/events.js`, newest first by its `iso` date). `/video`, `/events`, event pages and talk pages have a small **‹ Home** link at the top. Deck links (`/d/...`) are unchanged. |
 
 The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.
 
@@ -149,7 +150,7 @@ The deck template file (`src/template.html`) is never edited. Preview tags and t
 | `src/worker.js` | All server logic: `/` is the form, `POST /api/make` builds a deck, `/d/<id>` shows one |
 | `src/page.html` | The form page |
 | `src/skill.md` | The downloadable skill, served at `/skill.md` |
-| `src/og.png` | Link-preview image for the main page |
+| `src/og.png` | Link-preview image for the home and video pages |
 | `src/template.html` | The iTabs deck template, used unchanged. Only the DATA block between the markers is replaced. |
 | `dist/worker.js` | Single-file build, for pasting straight into the dashboard editor. Rebuild with `npm run bundle`. |
 | `npm test` | Rebuilds `dist/` and runs the offline tests, which use a simulated Gemini |

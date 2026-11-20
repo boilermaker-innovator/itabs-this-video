@@ -1863,12 +1863,23 @@ function demoShare(sample, type, origin) {
   };
 }
 
+// src/homelink.js
+var HOME_LINK_CSS = '.homelink{display:inline-block;margin:0 0 10px;padding:4px 0;color:#60a5fa;font:600 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;text-decoration:none}.homelink:hover{text-decoration:underline}';
+var HOME_LINK = '<a class="homelink" href="/">\u2039 Home</a>';
+function withHomeLink(html2) {
+  if (html2.includes('class="homelink"')) return html2;
+  const at = html2.includes("<main>") ? "<main>" : "<body>";
+  return html2.replace("</head>", "<style>" + HOME_LINK_CSS + "</style></head>").replace(at, at + "\n  " + HOME_LINK);
+}
+
 // src/talk/events.js
 var SITE = "itabs-this-video.jgwynne7.workers.dev";
 var EVENTS = {
   "claude-for-everyone-perth": {
     name: "Claude for Everyone, Perth",
     city: "Perth",
+    iso: "2026-11-17",
+    // for sorting /events, newest first
     host: "Claude Community Australia",
     venue: "Bloom, St Catherine's College",
     date: "Tuesday 17 November 2026",
@@ -1884,6 +1895,7 @@ var EVENTS = {
   "claude-in-motion-adelaide": {
     name: "Claude in Motion, Adelaide",
     city: "Adelaide",
+    iso: "2026-11-24",
     host: "Claude Community Australia",
     venue: "Venue to be announced",
     date: "Tuesday 24 November 2026, 6:00 pm",
@@ -1908,7 +1920,7 @@ function eventRoute(request, url) {
     if (!EVENT_QR[m[1]]) return null;
     return new Response(head ? null : EVENT_QR[m[1]], { headers: { ...BASE, "content-type": "image/png" } });
   }
-  return new Response(head ? null : renderEvent(m[1], url.origin), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
+  return new Response(head ? null : withHomeLink(renderEvent(m[1], url.origin)), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
 }
 function renderEvent(id, origin = "https://itabs-this-video.jgwynne7.workers.dev") {
   const ev = EVENTS[id];
@@ -2188,10 +2200,10 @@ async function showTalkDeck(request, url, env, h) {
     url: url.origin + url.pathname,
     image: url.origin + "/og.png"
   });
-  const page2 = h.renderDeck(data).replace("</title>", "</title>" + head).replace('<span><i style="background:var(--gold)"></i>From the video</span>', '<span><i style="background:var(--gold)"></i>From the talk</span>').replace("Any YouTube video, applied to you. <small>", 'A talk, applied to your project. <small>\xB7 <a href="' + back + '" style="color:var(--gold);text-decoration:none;font-weight:600">Back to the talk</a> ').replace("</body>", "<script>(()=>{const b=document.getElementById('cards');if(!b)return;b.addEventListener('click',()=>{const i=document.querySelector('.info:not([hidden]) .it');if(i&&i.textContent==='From the video')i.textContent='From the talk'})})();<\/script></body>");
-  return h.html(request.method === "HEAD" ? null : page2, 200, { "Cache-Control": "public, max-age=300" });
+  const page3 = h.renderDeck(data).replace("</title>", "</title>" + head).replace('<span><i style="background:var(--gold)"></i>From the video</span>', '<span><i style="background:var(--gold)"></i>From the talk</span>').replace("Any YouTube video, applied to you. <small>", 'A talk, applied to your project. <small>\xB7 <a href="' + back + '" style="color:var(--gold);text-decoration:none;font-weight:600">Back to the talk</a> ').replace("</body>", "<script>(()=>{const b=document.getElementById('cards');if(!b)return;b.addEventListener('click',()=>{const i=document.querySelector('.info:not([hidden]) .it');if(i&&i.textContent==='From the video')i.textContent='From the talk'})})();<\/script></body>");
+  return h.html(request.method === "HEAD" ? null : page3, 200, { "Cache-Control": "public, max-age=300" });
 }
-function withApplyBox(page2, slug) {
+function withApplyBox(page3, slug) {
   const chips = Object.entries(PROJECT_TYPES).map(([k, label]) => '<button type="button" class="ap-chip" role="radio" aria-checked="false" data-type="' + k + '">' + label + "</button>").join("");
   const box = `
 
@@ -2238,11 +2250,11 @@ go.addEventListener('click',function(){
 });})();
 <\/script>
 `;
-  const start = page2.indexOf('<section class="card homework">');
-  const end = start < 0 ? -1 : page2.indexOf("</section>", start);
-  if (end < 0 || !page2.includes("</head>") || !page2.includes("</body>")) return page2;
+  const start = page3.indexOf('<section class="card homework">');
+  const end = start < 0 ? -1 : page3.indexOf("</section>", start);
+  if (end < 0 || !page3.includes("</head>") || !page3.includes("</body>")) return page3;
   const at = end + "</section>".length;
-  return page2.slice(0, at).replace("</head>", css + "</head>") + box + page2.slice(at).replace("</body>", js + "</body>");
+  return page3.slice(0, at).replace("</head>", css + "</head>") + box + page3.slice(at).replace("</body>", js + "</body>");
 }
 
 // src/talk/talk.js
@@ -2273,7 +2285,7 @@ function talkRoute(request, url) {
   const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
   const f = FILES[path];
   if (!f) return null;
-  const body = f.talk ? withApplyBox(withMoreTalks(f.body, f.talk), f.talk) : f.body;
+  const body = f.talk ? withHomeLink(withApplyBox(withMoreTalks(f.body, f.talk), f.talk)) : f.body;
   return new Response(request.method === "HEAD" ? null : body, { headers: { ...BASE2, ...f.headers } });
 }
 function talkNotes(slug) {
@@ -2980,6 +2992,91 @@ function demoSection() {
 `;
 }
 
+// src/home.js
+var esc5 = (s) => String(s).replace(/[&<>"']/g, (c2) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c2]);
+var BASE_CSS = `
+:root{--bg:#0b0c0f;--card:#16181d;--raised:#23262d;--line:#2e323a;--fg:#f4f5f7;--muted:#a3a8b3;--gold:#f59e0b;--bluedot:#60a5fa;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5;min-height:100vh;min-height:100dvh}
+.wrap{max-width:460px;margin:0 auto;padding:28px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+.brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.brand i{width:22px;height:22px;border-radius:50%;background:var(--gold);color:#000;display:grid;place-items:center;font:italic 700 13px Georgia,serif}
+.foot{margin-top:28px;text-align:center;font-size:12.5px;color:var(--muted)}
+${HOME_LINK_CSS}
+`;
+function page2({ title, tags, css, body }) {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>${esc5(title)}</title>${tags}
+<style>${BASE_CSS}${css}</style></head>
+<body><div class="wrap">
+${body}
+ <p class="foot">Made with <b>iTabs</b> \xB7 itabs.co</p>
+</div></body></html>`;
+}
+function renderLanding(origin) {
+  const tags = shareTags({
+    title: "iTabs: take-home lessons from any talk, lesson or video",
+    description: "Pick a sample, pick your project, and see your own iTabs in seconds. Or make one from any YouTube video.",
+    url: origin + "/",
+    image: origin + "/og.png",
+    alt: "iTabs"
+  });
+  const css = DEMO_CSS + `
+.go2{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.big{display:flex;align-items:center;gap:14px;min-height:72px;padding:16px 18px;border-radius:16px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);transition:border-color .15s,transform .1s}
+.big:hover{border-color:#2563eb}.big:active{transform:scale(.98)}
+.big .tx{flex:1;min-width:0}.big b{display:block;font-size:18px;line-height:1.25}.big small{display:block;font-size:13.5px;color:var(--muted);margin-top:2px}
+.big::after{content:"\u203A";font-size:26px;line-height:1;color:var(--muted)}
+.big.main{background:#2563eb;border-color:#2563eb;color:#fff}.big.main small{color:rgba(255,255,255,.85)}.big.main::after{color:#fff}
+.big:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+@media (min-width:700px){.big{min-height:80px}.big b{font-size:19px}}
+`;
+  const demo = demoSection().replace(/\n <p class="or">[^<]*<\/p>\n?$/, "\n");
+  return page2({ title: "iTabs", tags, css, body: `
+ <div class="brand"><i>i</i>iTabs</div>
+${demo}
+ <nav class="go2" aria-label="More iTabs">
+  <a class="big main" href="/video"><span class="tx"><b>Make one from a YouTube video</b><small>Paste a link, say who's watching, get cards made for you</small></span></a>
+  <a class="big" href="/events"><span class="tx"><b>Talks and events</b><small>Take-home lessons from every talk on the night</small></span></a>
+ </nav>` });
+}
+function renderEvents(origin) {
+  const list = Object.entries(EVENTS).sort((a, b) => String(b[1].iso || "").localeCompare(String(a[1].iso || "")));
+  const cards = list.map(([id, ev]) => {
+    const n = ev.talks.length, linked = ev.talks.filter((t) => t.slug).length;
+    const count = n ? n + (n === 1 ? " talk" : " talks") + (linked ? " \xB7 " + linked + " to read" : "") : "Talks added after the night";
+    return `  <a class="ev" href="/event/${esc5(id)}"><span class="tx"><b>${esc5(ev.name)}</b><small>${esc5([ev.city, ev.date].filter(Boolean).join(" \xB7 "))}</small><em>${esc5(count)}</em></span></a>`;
+  }).join("\n");
+  const tags = shareTags({
+    title: "iTabs talks and events",
+    description: "Every talk from the night, as a take-home lesson.",
+    url: origin + "/events",
+    image: origin + "/og.png",
+    alt: "iTabs talks and events"
+  });
+  const css = `
+h1{font-size:28px;line-height:1.15;letter-spacing:-.01em;margin:16px 0 6px}
+.lead{color:var(--muted);font-size:15px;margin-bottom:18px}
+.evs{display:flex;flex-direction:column;gap:10px}
+.ev{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;background:var(--card);border:1px solid var(--line);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .1s}
+.ev:hover{border-color:#2563eb}.ev:active{transform:scale(.98)}.ev:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.ev .tx{flex:1;min-width:0}.ev b{display:block;font-size:18px;line-height:1.25}.ev small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.ev em{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:99px;background:#13244d;border:1px solid #2563eb;color:#93c5fd;font-style:normal;font-size:12.5px;font-weight:600}
+.ev::after{content:"\u203A";font-size:26px;line-height:1;color:var(--muted)}
+.add{display:block;margin-top:18px;text-align:center;color:#60a5fa;font-weight:600;font-size:14px;text-decoration:none}
+`;
+  return page2({ title: "Talks and events \xB7 iTabs", tags, css, body: `
+ ${HOME_LINK}
+ <div class="brand"><i>i</i>iTabs This Talk</div>
+ <h1>Talks and events</h1>
+ <p class="lead">Every talk from the night, as a take-home lesson.</p>
+ <div class="evs">
+${cards}
+ </div>
+ <a class="add" href="/talk/skill" download>Giving a talk? Get the skill to make your page</a>` });
+}
+
 // src/worker.js
 var LANGS = {
   en: "English",
@@ -3011,7 +3108,9 @@ var worker_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
+      if (url.pathname === "/" && request.method === "GET") return html(renderLanding(url.origin));
+      if ((url.pathname === "/video" || url.pathname === "/video/") && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
+      if ((url.pathname === "/events" || url.pathname === "/events/") && request.method === "GET") return html(renderEvents(url.origin));
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
       if (url.pathname.endsWith("/card.png")) {
@@ -3087,10 +3186,10 @@ function previewTags({ title, description, url, image }) {
 <meta name="twitter:description" content="${d}">
 <meta name="twitter:image" content="${i}">`;
 }
-function decorateDeck(page2, data, id, origin, embed) {
+function decorateDeck(page3, data, id, origin, embed) {
   const head = shareTags(videoShare(data, id, origin).tags);
   const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
-  return page2.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
+  return page3.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");
 }
 var EMBED_EXTRAS = `<meta name="robots" content="noindex"><style>.tag{display:none}.wrap{padding-bottom:6px}</style>
 `;
@@ -3113,7 +3212,7 @@ sh.onclick=async()=>{const d={title:DATA.videoTitle,text:'iTabs for '+DATA.video
  if(navigator.share){try{await navigator.share(d);return}catch(e){if(e&&e.name==='AbortError')return}}
  try{await navigator.clipboard.writeText(url)}catch(e){const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}
  sh.textContent='Copied \u2713';setTimeout(()=>sh.textContent='\u2197 Share',1800)};
-const tag=document.querySelector('.tag small');if(tag){tag.appendChild(document.createTextNode(' \xB7 '));const a=document.createElement('a');a.href='/';a.textContent='Make your own';tag.appendChild(a)}
+const tag=document.querySelector('.tag small');if(tag){tag.appendChild(document.createTextNode(' \xB7 '));const a=document.createElement('a');a.href='/video';a.textContent='Make your own';tag.appendChild(a)}
 const get=k=>{try{return localStorage.getItem(k)}catch(e){return null}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const K='itabs-fb:'+ID,last=document.querySelectorAll('.card .body');if(!last.length)return;
 const box=document.createElement('div');box.className='fb';last[last.length-1].appendChild(box);
@@ -3130,7 +3229,7 @@ function renderHome(origin, featuredId) {
   const tags = previewTags({
     title: "iTabs This Video",
     description: "Paste a link, say who's watching, and get swipeable cards made for you \u2014 ready to share with your team or a mate.",
-    url: origin + "/",
+    url: origin + "/video",
     image: origin + "/og.png"
   });
   const skillJson = JSON.stringify(skill_default).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
@@ -3139,7 +3238,7 @@ function renderHome(origin, featuredId) {
   <p class="key2"><i class="g"></i>Gold = from the video \xB7 <i class="b"></i>Blue = for you</p>
   <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
  </section>` : "";
-  return page_default.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example).replace("</style></head>", DEMO_CSS + "</style></head>").replace('<div class="brand"><i>i</i>iTabs This Video</div>', (b) => b + demoSection());
+  return page_default.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example).replace("</style></head>", HOME_LINK_CSS + "</style></head>").replace('<div class="brand"><i>i</i>iTabs This Video</div>', (b) => HOME_LINK + "\n " + b);
 }
 var START = "/* ===== ONLY EDIT THIS DATA BLOCK ===== */";
 var END = "/* ===== END DATA BLOCK ===== */";
@@ -3492,10 +3591,10 @@ async function stats(request, env) {
   const decks = [];
   let cursor;
   for (let i = 0; i < 10; i++) {
-    const page2 = await env.DECKS.list({ prefix: "deck:", cursor });
-    decks.push(...page2.keys);
-    if (page2.list_complete) break;
-    cursor = page2.cursor;
+    const page3 = await env.DECKS.list({ prefix: "deck:", cursor });
+    decks.push(...page3.keys);
+    if (page3.list_complete) break;
+    cursor = page3.cursor;
   }
   const tz = statsTimeZone(env);
   const { today, weekStart } = periodStarts(/* @__PURE__ */ new Date(), tz);
@@ -3632,10 +3731,10 @@ async function videoMeta(id) {
       signal: AbortSignal.timeout(8e3)
     });
     if (r.ok) {
-      const page2 = await r.text();
-      const m = page2.match(/"lengthSeconds":"(\d+)"/);
+      const page3 = await r.text();
+      const m = page3.match(/"lengthSeconds":"(\d+)"/);
       if (m) meta.seconds = +m[1];
-      if (/"isLiveContent":true/.test(page2) && /"isLive":true/.test(page2)) meta.isLive = true;
+      if (/"isLiveContent":true/.test(page3) && /"isLive":true/.test(page3)) meta.isLive = true;
     }
   } catch {
   }

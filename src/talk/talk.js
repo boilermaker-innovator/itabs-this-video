@@ -8,6 +8,7 @@ import RYE_QR from "./rye/qr-talk-itabs-rye.png";
 import TALK_SKILL from "./skill/SKILL.md";
 import { eventForTalk, esc } from "./events.js";
 import { withApplyBox } from "./apply.js";
+import { withHomeLink } from "../homelink.js";
 
 const BASE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "cache-control": "public, max-age=300" };
 const md = (body, filename) => ({ body, headers: { "content-type": "text/markdown; charset=utf-8", "content-disposition": 'attachment; filename="' + filename + '"' } });
@@ -52,7 +53,7 @@ export function talkRoute(request, url) {
   const path = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
   const f = FILES[path];
   if (!f) return null;
-  const body = f.talk ? withApplyBox(withMoreTalks(f.body, f.talk), f.talk) : f.body;
+  const body = f.talk ? withHomeLink(withApplyBox(withMoreTalks(f.body, f.talk), f.talk)) : f.body;
   return new Response(request.method === "HEAD" ? null : body, { headers: { ...BASE, ...f.headers } });
 }
 

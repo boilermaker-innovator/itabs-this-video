@@ -10,6 +10,7 @@
 import PERTH_QR from "./events/claude-for-everyone-perth-qr.png";
 import ADELAIDE_QR from "./events/claude-in-motion-adelaide-qr.png";
 import { shareTags, eventShare } from "../share/meta.js";
+import { withHomeLink } from "../homelink.js";
 
 export const SITE = "itabs-this-video.jgwynne7.workers.dev";
 
@@ -17,6 +18,7 @@ export const EVENTS = {
   "claude-for-everyone-perth": {
     name: "Claude for Everyone, Perth",
     city: "Perth",
+    iso: "2026-11-17",   // for sorting /events, newest first
     host: "Claude Community Australia",
     venue: "Bloom, St Catherine's College",
     date: "Tuesday 17 November 2026",
@@ -32,6 +34,7 @@ export const EVENTS = {
   "claude-in-motion-adelaide": {
     name: "Claude in Motion, Adelaide",
     city: "Adelaide",
+    iso: "2026-11-24",
     host: "Claude Community Australia",
     venue: "Venue to be announced",
     date: "Tuesday 24 November 2026, 6:00 pm",
@@ -62,7 +65,7 @@ export function eventRoute(request, url) {
     if (!EVENT_QR[m[1]]) return null;
     return new Response(head ? null : EVENT_QR[m[1]], { headers: { ...BASE, "content-type": "image/png" } });
   }
-  return new Response(head ? null : renderEvent(m[1], url.origin), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
+  return new Response(head ? null : withHomeLink(renderEvent(m[1], url.origin)), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
 }
 
 export function renderEvent(id, origin = "https://itabs-this-video.jgwynne7.workers.dev") {

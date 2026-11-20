@@ -136,7 +136,7 @@ test("injected data can't break out of the script tag", () => {
 test("unknown deck and unknown page show friendly pages", async () => {
   const r = await worker.fetch(new Request("https://x.dev/d/nope1234"), env());
   assert.equal(r.status, 404); assert.match(await r.text(), /Deck not found/);
-  const r2 = await worker.fetch(new Request("https://x.dev/"), env());
+  const r2 = await worker.fetch(new Request("https://x.dev/video"), env());
   assert.match(await r2.text(), /Make my iTabs/);
 });
 
@@ -163,14 +163,14 @@ test("preview tags escape quotes in titles", async () => {
   assert.ok(html.includes('content="My takeaway from He said &quot;hi&quot; &lt;b&gt;"'));
 });
 
-test("home page has preview tags, mode toggle and the skill", async () => {
-  const html = await (await get(env(), "/")).text();
+test("video page (/video) has preview tags, mode toggle and the skill", async () => {
+  const html = await (await get(env(), "/video")).text();
   assert.match(html, /og:image" content="https:\/\/x\.dev\/og\.png"/);
   const line = "Paste a link, say who&#39;s watching, and get swipeable cards made for you — ready to share with your team or a mate.";
   for (const n of ['name="description"', 'property="og:description"', 'name="twitter:description"']) assert.ok(html.includes(`<meta ${n} content="${line}">`), n);
   assert.ok(html.includes("For someone else") && html.includes("Download skill") && html.includes("Copy skill"));
   assert.ok(!html.includes("/*SKILL*/null") && !html.includes("<!--PREVIEW-->"));
-  assert.equal(html.split("</script>").length, 3, "skill text can't break the page script (2 scripts: Try it now, and the video form)");
+  assert.equal(html.split("</script>").length, 2, "skill text can't break the page script");
   const png = await get(env(), "/og.png");
   assert.equal(png.headers.get("content-type"), "image/png");
   assert.ok((await png.arrayBuffer()).byteLength > 10000);
@@ -223,7 +223,7 @@ test("stats page needs the PIN and shows the numbers", async () => {
 test("featured example deck: shown when FEATURED_DECK is a real deck, hidden otherwise", async () => {
   const e = env(); geminiQueue.push(goodDeck());
   const { id } = await (await post(e, base)).json();
-  const home = async (v) => (await get({ ...e, FEATURED_DECK: v }, "/")).text();
+  const home = async (v) => (await get({ ...e, FEATURED_DECK: v }, "/video")).text();
   for (const v of [id, ` https://itabs-this-video.x.workers.dev/d/${id} `, `/d/${id}?x=1`]) {
     const h = await home(v);
     assert.ok(h.includes(`<iframe src="/d/${id}?embed"`), "shown for " + v);
@@ -267,7 +267,7 @@ test("main page: quick-pick chips fill the box and progress messages rotate", as
   const { createRequire } = await import("node:module");
   let chromium;
   try { ({ chromium } = createRequire(import.meta.url)("playwright")); } catch { return t.skip("playwright not installed"); }
-  const html = await (await get(env(), "/")).text();
+  const html = await (await get(env(), "/video")).text();
   const b = await chromium.launch(); const p = await b.newPage();
   await p.route("**/api/make", () => {});                      // never answers: stay on the loading screen
   await p.route("https://x.dev/", (r) => r.fulfill({ contentType: "text/html", body: html }));
@@ -677,7 +677,7 @@ test("form: Study mode switch changes the example and is sent with the request",
   const { createRequire } = await import("node:module");
   let pw;
   try { pw = createRequire(import.meta.url)("playwright"); } catch { return t.skip("playwright not installed"); }
-  const html = await (await get(env(), "/")).text();
+  const html = await (await get(env(), "/video")).text();
   const b = await pw.chromium.launch(); t.after(() => b.close());
   const p = await (await b.newContext({ ...pw.devices["iPhone 13"] })).newPage();
   let sent = null;
@@ -1016,19 +1016,48 @@ test("demo: all 25 sample decks pass the same checks as AI decks", async () => {
   assert.equal(a.cards[0].buttons[1].text, b.cards[0].buttons[1].text, "gold stays the same");
 });
 
-test("demo: 'Try it now' is first on the home page, video tools follow", async () => {
+test("home page: Try it now demo first, then the two big buttons; the video tool lives at /video", async () => {
   const html = await (await get(env(), "/")).text();
-  const tryAt = html.indexOf('id="try"'), h1At = html.indexOf("<h1>Any YouTube video"), formAt = html.indexOf('id="form"');
-  assert.ok(tryAt > 0 && tryAt < h1At && h1At < formAt, "demo, then the video heading and form");
+  const tryAt = html.indexOf('id="try"'), vidAt = html.indexOf('href="/video"'), evAt = html.indexOf('href="/events"');
+  assert.ok(tryAt > 0 && tryAt < vidAt && vidAt < evAt, "demo, then the two buttons");
+  assert.match(html, /<b>Make one from a YouTube video<\/b>/); assert.match(html, /<b>Talks and events<\/b>/);
+  assert.doesNotMatch(html, /id="form"|Or use any YouTube video/, "no video form on the home page");
   assert.match(html, /Turn any talk or lesson into a take-home lesson\./);
-  assert.match(html, /Pick a sample, pick your project, and see your own iTabs in seconds\./);
   for (const label of ["Quality gates for agents", "Getting found by AI", "Working at heights", "Welding basics for apprentices", "Electrical safety basics for apprentices"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
   assert.equal((html.match(/<small>Sample · made up for this demo, not official training<\/small>/g) || []).length, 3, "3 made-up samples labelled");
   for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
   assert.match(html, /What do you want to try\?[\s\S]*What's your project about\?/);
   assert.match(html, />Step 1 of 2</); assert.match(html, /id="tryback" hidden>‹ Back/);
-  assert.doesNotMatch(html, /Make my sample/, "no extra button: tapping a project type opens the deck");
-  assert.doesNotMatch(html.slice(tryAt, h1At), /#6c5ce7|#a29bfe|#7c3aed|purple/i);
+  assert.doesNotMatch(html, /Make my sample/);
+  assert.doesNotMatch(html, /#6c5ce7|#a29bfe|#7c3aed|purple/i);
+  const og = ogOf(html); assert.equal(og["og:url"], "https://x.dev/"); assert.equal(og["og:image"], "https://x.dev/og.png");
+  const video = await (await get(env(), "/video")).text();
+  assert.ok(video.indexOf('class="homelink" href="/">‹ Home') > 0 && video.indexOf('class="homelink"') < video.indexOf('id="form"'), "/video has Home at the top and the form");
+  assert.doesNotMatch(video, /id="try"/, "demo is only on the home page");
+  assert.equal((await get(env(), "/video/")).status, 200);
+});
+
+test("events page lists every event newest first, and pages have Home links", async () => {
+  const html = await (await get(env(), "/events")).text();
+  const ade = html.indexOf('href="/event/claude-in-motion-adelaide"'), per = html.indexOf('href="/event/claude-for-everyone-perth"');
+  assert.ok(ade > 0 && per > ade, "Adelaide (24 Nov) before Perth (17 Nov)");
+  assert.match(html, /Perth · Tuesday 17 November 2026/); assert.match(html, /5 talks · 2 to read/); assert.match(html, /Talks added after the night/);
+  assert.match(html, /class="homelink" href="\/">‹ Home/);
+  assert.doesNotMatch(html, /#6c5ce7|#a29bfe|purple/i);
+  for (const path of ["/event/claude-for-everyone-perth", "/event/claude-in-motion-adelaide", "/talk/aidan", "/talk/rye"]) {
+    const page = await (await get(env(), path)).text();
+    assert.equal((page.match(/class="homelink" href="\/"/g) || []).length, 1, path + " has one Home link");
+    assert.ok(page.indexOf('class="homelink"') < page.indexOf("<h1"), path + ": Home link is at the top");
+  }
+});
+
+test("old links keep working after the move", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { path } = await (await post(e, base)).json();
+  const deck = await get(e, path);
+  assert.equal(deck.status, 200, "/d/<id> still opens");
+  assert.match(await deck.text(), /a\.href='\/video';a\.textContent='Make your own'/, "Make your own goes to the video tool");
+  for (const p of ["/skill.md", "/og.png", "/talk/skill", "/demo/rye/shop", "/event/claude-for-everyone-perth"]) assert.equal((await get(e, p)).status, 200, p);
 });
 
 test("demo: sample deck pages are ready-made (no AI), with share card, tags and the upload button", async () => {

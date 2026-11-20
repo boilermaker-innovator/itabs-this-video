@@ -8,7 +8,9 @@ import { makeTalkDeck, showTalkDeck } from "./talk/apply.js";
 import { rndRoute } from "./rnd/share-card.js";
 import { cardRoute } from "./share/routes.js";
 import { shareTags, videoShare } from "./share/meta.js";
-import { demoRoute, demoSection, DEMO_CSS } from "./demo/demo.js";
+import { demoRoute } from "./demo/demo.js";
+import { renderLanding, renderEvents } from "./home.js";
+import { HOME_LINK, HOME_LINK_CSS } from "./homelink.js";
 import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
@@ -39,7 +41,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
+      if (url.pathname === "/" && request.method === "GET") return html(renderLanding(url.origin));
+      // The YouTube video tool, moved here from the home page, otherwise unchanged.
+      if ((url.pathname === "/video" || url.pathname === "/video/") && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
+      if ((url.pathname === "/events" || url.pathname === "/events/") && request.method === "GET") return html(renderEvents(url.origin));
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
       if (url.pathname.endsWith("/card.png")) { const c = await cardRoute(request, url, env); if (c) return c; }
@@ -137,7 +142,7 @@ sh.onclick=async()=>{const d={title:DATA.videoTitle,text:'iTabs for '+DATA.video
  if(navigator.share){try{await navigator.share(d);return}catch(e){if(e&&e.name==='AbortError')return}}
  try{await navigator.clipboard.writeText(url)}catch(e){const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}
  sh.textContent='Copied ✓';setTimeout(()=>sh.textContent='↗ Share',1800)};
-const tag=document.querySelector('.tag small');if(tag){tag.appendChild(document.createTextNode(' · '));const a=document.createElement('a');a.href='/';a.textContent='Make your own';tag.appendChild(a)}
+const tag=document.querySelector('.tag small');if(tag){tag.appendChild(document.createTextNode(' · '));const a=document.createElement('a');a.href='/video';a.textContent='Make your own';tag.appendChild(a)}
 const get=k=>{try{return localStorage.getItem(k)}catch(e){return null}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const K='itabs-fb:'+ID,last=document.querySelectorAll('.card .body');if(!last.length)return;
 const box=document.createElement('div');box.className='fb';last[last.length-1].appendChild(box);
@@ -155,7 +160,7 @@ export function renderHome(origin, featuredId) {
   const tags = previewTags({
     title: "iTabs This Video",
     description: "Paste a link, say who's watching, and get swipeable cards made for you — ready to share with your team or a mate.",
-    url: origin + "/",
+    url: origin + "/video",
     image: origin + "/og.png",
   });
   const skillJson = JSON.stringify(SKILL).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
@@ -167,9 +172,9 @@ export function renderHome(origin, featuredId) {
  </section>`
     : "";
   return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example)
-    // "Try it now" demo first on the page (src/demo/); the video tools follow, unchanged.
-    .replace("</style></head>", DEMO_CSS + "</style></head>")
-    .replace('<div class="brand"><i>i</i>iTabs This Video</div>', (b) => b + demoSection());
+    // "‹ Home" link above the brand; the video tool itself is unchanged.
+    .replace("</style></head>", HOME_LINK_CSS + "</style></head>")
+    .replace('<div class="brand"><i>i</i>iTabs This Video</div>', (b) => HOME_LINK + "\n " + b);
 }
 
 const START = "/* ===== ONLY EDIT THIS DATA BLOCK ===== */";
