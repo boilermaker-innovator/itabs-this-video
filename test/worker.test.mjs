@@ -170,7 +170,7 @@ test("home page has preview tags, mode toggle and the skill", async () => {
   for (const n of ['name="description"', 'property="og:description"', 'name="twitter:description"']) assert.ok(html.includes(`<meta ${n} content="${line}">`), n);
   assert.ok(html.includes("For someone else") && html.includes("Download skill") && html.includes("Copy skill"));
   assert.ok(!html.includes("/*SKILL*/null") && !html.includes("<!--PREVIEW-->"));
-  assert.equal(html.split("</script>").length, 2, "skill text can't break the page script");
+  assert.equal(html.split("</script>").length, 3, "skill text can't break the page script (2 scripts: Try it now, and the video form)");
   const png = await get(env(), "/og.png");
   assert.equal(png.headers.get("content-type"), "image/png");
   assert.ok((await png.arrayBuffer()).byteLength > 10000);
@@ -996,4 +996,62 @@ test("share card: event pages get 'Every talk from' cards and full tags", async 
 test("share card: talk deck cards (R&D) are unchanged", async () => {
   const og = ogOf(await (await get(env(), "/rnd/share-card/example")).text());
   assert.equal(og["og:image"], "https://x.dev/rnd/share-card/img/rye-shop.png");
+});
+
+test("demo: all 25 sample decks pass the same checks as AI decks", async () => {
+  const { SAMPLES, TYPES, demoDeck } = await import("../src/demo/decks.js");
+  assert.equal(Object.keys(SAMPLES).length, 5); assert.equal(Object.keys(TYPES).length, 5);
+  let n = 0;
+  for (const s of Object.keys(SAMPLES)) for (const t of Object.keys(TYPES)) {
+    const d = demoDeck(s, t), v = validateDeck(d);
+    assert.ok(v.ok, s + "/" + t + ": " + (v.errors || []).join("; "));
+    assert.ok(d.cards.every((c) => c.buttons[0].you && c.buttons[0].text.startsWith("• ") && c.buttons.slice(1).every((b) => !b.you)), s + "/" + t + " gold and blue");
+    assert.equal(d.cards.at(-1).band, "Your next step");
+    assert.doesNotMatch(JSON.stringify(d), /#4c1d95|#7c3aed|#6c5ce7|#8b5cf6|#a78bfa|purple|violet/i, "no purple");
+    n++;
+  }
+  assert.equal(n, 25);
+  const a = demoDeck("rye", "cafe"), b = demoDeck("rye", "trades");
+  assert.notEqual(a.cards[0].buttons[0].text, b.cards[0].buttons[0].text, "blue changes per project type");
+  assert.equal(a.cards[0].buttons[1].text, b.cards[0].buttons[1].text, "gold stays the same");
+});
+
+test("demo: 'Try it now' is first on the home page, video tools follow", async () => {
+  const html = await (await get(env(), "/")).text();
+  const tryAt = html.indexOf('id="try"'), h1At = html.indexOf("<h1>Any YouTube video"), formAt = html.indexOf('id="form"');
+  assert.ok(tryAt > 0 && tryAt < h1At && h1At < formAt, "demo, then the video heading and form");
+  assert.match(html, /Turn any talk or lesson into a take-home lesson\./);
+  assert.match(html, /Pick a sample, pick your project, and see your own iTabs in seconds\./);
+  for (const label of ["Quality gates for agents", "Getting found by AI", "Working at heights", "Welding basics for apprentices", "Electrical safety basics for apprentices"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
+  assert.equal((html.match(/<small>Sample · made up for this demo, not official training<\/small>/g) || []).length, 3, "3 made-up samples labelled");
+  for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes(">" + label + "</button>"), label);
+  assert.match(html, />Make my sample<\/button>/);
+  assert.doesNotMatch(html.slice(tryAt, h1At), /#6c5ce7|#a29bfe|#7c3aed|purple/i);
+});
+
+test("demo: sample deck pages are ready-made (no AI), with share card, tags and the upload button", async () => {
+  const e = env();
+  const r = await get(e, "/demo/welding/trades");
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.equal(calls.length, 0, "no AI or network calls");
+  const og = ogOf(html);
+  assert.equal(og["og:title"], "My takeaway from Welding basics for apprentices");
+  assert.equal(og["og:image"], "https://x.dev/demo/welding/trades/card.png");
+  assert.equal(og["og:url"], "https://x.dev/demo/welding/trades");
+  assert.equal(og["twitter:card"], "summary_large_image");
+  assert.match(og["og:image:alt"], /Sample · made up for this demo, not official training\. Applied to: Trades/);
+  assert.match(html, /From the lesson<\/span>/); assert.doesNotMatch(html, /From the video<\/span>/);
+  assert.match(html, /Sample deck · made up for this demo, not official training\./);
+  assert.match(html, /Want one from your own talk\?/); assert.match(html, /Upload your slides · Coming soon/);
+  assert.match(html, /"forWho": "a trades business"/);
+  const talk = await (await get(e, "/demo/aidan/startup")).text();
+  assert.match(talk, /href="\/talk\/aidan"[^>]*>Read the talk/); assert.match(talk, /From the talk<\/span>/);
+  const png = new Uint8Array(await (await get(e, "/demo/welding/trades/card.png")).arrayBuffer());
+  assert.deepEqual(pngInfo(png), { w: 1200, h: 630, type: 3, sig: "PNG" });
+  assert.equal((await get(e, "/demo/welding/spaceship")).status, 404);
+  assert.equal((await get(e, "/demo/nope/cafe/card.png")).status, 404);
+  const notes = await get(e, "/demo/electrical/notes.md");
+  assert.match(notes.headers.get("content-disposition"), /electrical-safety\.md/);
+  assert.match(await notes.text(), /General awareness only/);
 });

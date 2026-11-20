@@ -1,7 +1,7 @@
 """Builds the assets for the share card template (src/share/assets/).
 
 The Worker draws share cards (1200x630 PNG link previews) itself, without image libraries:
-  - template-talk.png / template-video.png: the fixed parts (background, card, blue edge, "Made with iTabs", gold and blue i badges)
+  - template-talk.png / template-video.png / template-lesson.png: the fixed parts (background, card, blue edge, "Made with iTabs", gold and blue i badges)
   - <font>.png + fonts.json: Inter letter shapes and their sizes, for the text that changes
 All PNGs are written with "no filter" rows so the Worker can read them cheaply. The templates are
 palette PNGs (one byte per pixel): 150 colours for the fixed parts plus 7 blend ramps for the text
@@ -133,7 +133,8 @@ def atlas(style, px):
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     info = {}
-    for name, labels in [("talk", ("From the talk", "For my project")), ("video", ("From the video", "For me"))]:
+    for name, labels in [("talk", ("From the talk", "For my project")), ("video", ("From the video", "For me")),
+                         ("lesson", ("From the lesson", "For my project"))]:
         q, pal, info[name] = palette_template(template(labels))
         png(os.path.join(OUT, "template-%s.png" % name), "P", q, pal)
     if os.path.exists(os.path.join(OUT, "template.png")): os.remove(os.path.join(OUT, "template.png"))

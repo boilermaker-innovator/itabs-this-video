@@ -7,7 +7,8 @@
 // Same look as the talk deck cards (scripts/make-share-images.mjs).
 //
 // renderCard({ kind, kicker, title, sub, pill }) -> PNG bytes
-//   kind:   "talk" (badges "From the talk" / "For my project") or "video" ("From the video" / "For me")
+//   kind:   "talk" (badges "From the talk" / "For my project"), "lesson" ("From the lesson" / "For my project")
+//           or "video" ("From the video" / "For me")
 //   kicker: small blue line, e.g. "My takeaway from"
 //   title:  the big white text (shrinks to fit, up to 3 lines)
 //   sub:    optional grey line, e.g. the channel name, or "Perth · Tuesday 17 November 2026"
@@ -15,6 +16,7 @@
 // Never pass anything the reader typed: cards are public.
 import TEMPLATE_TALK from "./assets/template-talk.png";
 import TEMPLATE_VIDEO from "./assets/template-video.png";
+import TEMPLATE_LESSON from "./assets/template-lesson.png";
 import KICKER from "./assets/kicker.png";
 import T66 from "./assets/t66.png";
 import T56 from "./assets/t56.png";
@@ -28,7 +30,7 @@ const TPL = FONTS._templates, LEVELS = 12;
 // Which blend ramp each text style uses (see scripts/make-card-assets.py).
 const RAMP = { kicker: "kicker", title: "title", sub: "sub", text: "pillText", soft: "pillSoft" };
 const SHEETS = { kicker: KICKER, t66: T66, t56: T56, t48: T48, sub: SUB, pill: PILL };
-const TEMPLATES = { talk: TEMPLATE_TALK, video: TEMPLATE_VIDEO };
+const TEMPLATES = { talk: TEMPLATE_TALK, video: TEMPLATE_VIDEO, lesson: TEMPLATE_LESSON };
 
 const bytes = (x) => (x instanceof Uint8Array ? x : new Uint8Array(x));
 async function pipe(u8, stream) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer()); }

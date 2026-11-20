@@ -58,3 +58,20 @@ export function eventShare(ev, id, origin) {
     },
   };
 }
+
+// "Try it now" sample decks.
+import { SAMPLES, TYPES } from "../demo/decks.js";
+export function demoShare(sample, type, origin) {
+  const s = SAMPLES[sample], t = TYPES[type];
+  const sub = s.madeUp ? "Sample · made up for this demo, not official training" : s.by;
+  return {
+    card: { kind: s.kind, kicker: "My takeaway from", title: s.fullTitle, sub, pill: [{ text: "Applied to: ", tone: "soft" }, { text: t.label }] },
+    tags: {
+      title: "My takeaway from " + s.fullTitle,
+      description: (s.madeUp ? "A sample " + s.label.toLowerCase() : "A talk by " + s.by.split(",")[0]) + ", applied to " + t.forWho + ". Tap the gold and blue i-buttons to see what it says and how it applies.",
+      url: origin + "/demo/" + sample + "/" + type,
+      image: origin + "/demo/" + sample + "/" + type + "/card.png",
+      alt: "My takeaway from " + s.fullTitle + ". " + sub + ". Applied to: " + t.label + ". Made with iTabs.",
+    },
+  };
+}

@@ -8,6 +8,7 @@ import { makeTalkDeck, showTalkDeck } from "./talk/apply.js";
 import { rndRoute } from "./rnd/share-card.js";
 import { cardRoute } from "./share/routes.js";
 import { shareTags, videoShare } from "./share/meta.js";
+import { demoRoute, demoSection, DEMO_CSS } from "./demo/demo.js";
 import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
@@ -56,6 +57,7 @@ export default {
         const t = talkRoute(request, url); if (t) return t;
       }
       if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
+      if (url.pathname.startsWith("/demo/")) { const d = demoRoute(request, url, TALK_HELPERS); if (d) return d; }
       if (url.pathname.startsWith("/rnd/")) { const r = await rndRoute(request, url, env, TALK_HELPERS); if (r) return r; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
@@ -164,7 +166,10 @@ export function renderHome(origin, featuredId) {
   <iframe src="/d/${featuredId}?embed" title="Example iTabs deck" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
  </section>`
     : "";
-  return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example);
+  return PAGE.replace("<!--PREVIEW-->", tags).replace("/*SKILL*/null", skillJson).replace("<!--EXAMPLE-->", example)
+    // "Try it now" demo first on the page (src/demo/); the video tools follow, unchanged.
+    .replace("</style></head>", DEMO_CSS + "</style></head>")
+    .replace('<div class="brand"><i>i</i>iTabs This Video</div>', (b) => b + demoSection());
 }
 
 const START = "/* ===== ONLY EDIT THIS DATA BLOCK ===== */";
