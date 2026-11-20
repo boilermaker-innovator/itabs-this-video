@@ -760,7 +760,31 @@ test("talk: each meetup talk links to the others, above the footer", async () =>
     assert.doesNotMatch(card[0], new RegExp('href="/talk/' + slug + '"'), "doesn't link to itself");
     assert.ok(html.indexOf("more-talks\">") < html.indexOf("<footer>"), "card is above the footer");
     assert.equal((html.match(/more-talks/g) || []).length, 3, "card and its style added once");
+    assert.match(card[0], /<a class="more-all" href="\/event\/claude-for-everyone-perth">See the whole night/);
+    assert.doesNotMatch(card[0], /Vanessa|Jeroen/, "talks without a page are not linked from talk pages");
   }
   const md = await (await get(env(), "/talk/rye/rye-smith-getting-found-by-ai.md")).text();
   assert.doesNotMatch(md, /More talks/, "MD files stay exactly as written");
+});
+
+test("event: Claude for Everyone, Perth page lists every talk in order and shows the QR", async () => {
+  const r = await get(env(), "/event/claude-for-everyone-perth");
+  assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /text\/html/);
+  const html = await r.text();
+  assert.match(html, /<h1>Claude for Everyone, Perth<\/h1>/);
+  assert.match(html, /Claude Community Australia[\s\S]*Bloom, St Catherine's College[\s\S]*Tuesday 17 November 2026/);
+  assert.match(html, /Every talk from the night, as a take-home lesson\. Scan, read, and apply it to your own work\./);
+  const order = ["Vanessa Ennis", "Vladimir Vorotilov", "Jeroen van Dalen", "Aidan Morgan", "Rye Smith"].map((n) => html.indexOf(n));
+  assert.ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), "speakers in order");
+  assert.equal((html.match(/<a class="talk" href=/g) || []).length, 2, "only talks with pages are links");
+  assert.match(html, /<a class="talk" href="\/talk\/aidan">/); assert.match(html, /<a class="talk" href="\/talk\/rye">[\s\S]*Getting found by AI: how Spruik runs SEO with Claude/);
+  assert.equal((html.match(/Slides coming soon/g) || []).length, 3);
+  assert.match(html, /<div class="talk soon" aria-disabled="true"><span class="who">Jeroen van Dalen<\/span><span class="badge">/, "no title shown when there isn't one");
+  assert.match(html, /src="\/event\/claude-for-everyone-perth\/qr\.png"/);
+  assert.match(html, /href="\/talk\/skill" download>Add your talk/);
+  assert.match(html, /<footer>Made with iTabs · Jon · <a href="tel:0421508009">0421 508 009<\/a> · <a href="mailto:[^"]+">[^<]+<\/a><\/footer>/);
+  const qr = await get(env(), "/event/claude-for-everyone-perth/qr.png");
+  assert.equal(qr.headers.get("content-type"), "image/png");
+  assert.equal((await get(env(), "/event/nope")).status, 404);
+  assert.equal((await get(env(), "/event/claude-for-everyone-perth/")).status, 200);
 });

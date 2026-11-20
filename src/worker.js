@@ -4,6 +4,7 @@ import PAGE from "./page.html";
 import SKILL from "./skill.md";
 import OG_PNG from "./og.png";
 import { talkRoute } from "./talk/talk.js";
+import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
   en: "English",
@@ -45,6 +46,7 @@ export default {
       if (url.pathname === "/stats" && (request.method === "GET" || request.method === "POST")) return await stats(request, env);
       if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
       if (url.pathname.startsWith("/talk/")) { const t = talkRoute(request, url); if (t) return t; }
+      if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
       console.error("Unhandled", err && err.stack || err);

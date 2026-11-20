@@ -6,32 +6,32 @@ import RYE_PAGE from "./rye/index.html";
 import RYE_MD from "./rye/rye-smith-getting-found-by-ai.md";
 import RYE_QR from "./rye/qr-talk-itabs-rye.png";
 import TALK_SKILL from "./skill/SKILL.md";
+import { eventForTalk, esc } from "./events.js";
 
 const BASE = { "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "cache-control": "public, max-age=300" };
 const md = (body, filename) => ({ body, headers: { "content-type": "text/markdown; charset=utf-8", "content-disposition": 'attachment; filename="' + filename + '"' } });
 
-// Talks from the same meetup. Each talk page gets a "More talks from this meetup"
-// card listing the others. To add a talk: add one line here (slug, speaker, title)
-// and register its page, MD and QR in FILES below with talk: "<slug>" on the page.
-const MEETUP_TALKS = [
-  { slug: "aidan", speaker: "Aidan Morgan", title: "Quality gates for agents: Make bad code fail" },
-  { slug: "rye", speaker: "Rye Smith", title: "Getting found by AI: how Spruik runs SEO with Claude" },
-];
+// Each talk page gets a "More talks from this meetup" card, built from its event's
+// talks in events.js (the one list for events and talks). Register a talk's page, MD
+// and QR in FILES below with talk: "<slug>" on the page.
 
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const page = (body, talk) => ({ body, talk, headers: { "content-type": "text/html; charset=utf-8" } });
 
 // Adds the "More talks from this meetup" card just above the page footer.
 export function withMoreTalks(html, slug) {
-  const others = MEETUP_TALKS.filter((t) => t.slug !== slug);
-  if (!others.length || !html.includes("<footer>")) return html;
+  const ev = eventForTalk(slug);
+  if (!ev || !html.includes("<footer>")) return html;
+  const others = ev.talks.filter((t) => t.slug && t.slug !== slug);
   const links = others.map((t) =>
     '<a class="more-talk" href="/talk/' + esc(t.slug) + '"><span class="more-speaker">' + esc(t.speaker) + '</span><span class="more-title">' + esc(t.title) + "</span></a>").join("\n    ");
-  const card = '<section class="card more-talks">\n    <h2>More talks from this meetup</h2>\n    ' + links + "\n  </section>\n\n  ";
+  const whole = '<a class="more-all" href="/event/' + esc(ev.id) + '">See the whole night →<small>' + esc(ev.name) + "</small></a>";
+  const card = '<section class="card more-talks">\n    <h2>More talks from this meetup</h2>\n    ' + (links ? links + "\n    " : "") + whole + "\n  </section>\n\n  ";
   const css = "<style>.more-talks{display:flex;flex-direction:column;gap:10px}.more-talks h2{margin-bottom:2px}" +
     ".more-talk{display:block;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);text-decoration:none}" +
     ".more-talk:active{transform:scale(.98)}.more-speaker{display:block;font-size:13px;font-weight:700;color:var(--accent-soft,#a29bfe)}" +
-    ".more-title{display:block;font-weight:600;margin-top:2px}.more-title::after{content:\" →\";color:var(--muted)}</style>\n";
+    ".more-title{display:block;font-weight:600;margin-top:2px}.more-title::after{content:\" →\";color:var(--muted)}" +
+    ".more-all{display:block;padding:14px 16px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;text-align:center;text-decoration:none}" +
+    ".more-all small{display:block;font-weight:400;font-size:13px;color:rgba(255,255,255,.8);margin-top:2px}.more-all:active{transform:scale(.98)}</style>\n";
   return html.replace("</head>", css + "</head>").replace("<footer>", card + "<footer>");
 }
 

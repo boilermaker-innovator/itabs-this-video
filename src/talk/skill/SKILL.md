@@ -426,7 +426,7 @@ Give the speaker the folder (as a zip if you can make one), the PNG for their la
 2. **Send the folder to Jon at iTabs** to put it live: WhatsApp or call 0421 508 009, or email jgwynne7@gmail.com.
 3. **Before presenting**, scan the QR code on a phone and check the page opens.
 
-If you're working inside the itabs-this-video repo itself (Jon's job when a folder arrives), put the folder at `src/talk/<slug>/` next to `aidan/`. Add its page, MD and QR to `FILES` in `src/talk/talk.js`, copying the three `aidan` lines. If the talk was at the same meetup as the others, add one line for it to `MEETUP_TALKS` in the same file, so every talk page links to it. Then run `npm test` and push to `main`.
+If you're working inside the itabs-this-video repo itself (Jon's job when a folder arrives), put the folder at `src/talk/<slug>/` next to `aidan/`. Add its page, MD and QR to `FILES` in `src/talk/talk.js`, copying the three `aidan` lines. If the talk was at an event, add one line for it (with its `slug`) to that event's talks in `src/talk/events.js`, so the event page and every talk page from that night link to it. Then run `npm test` and push to `main`.
 
 ---
 
