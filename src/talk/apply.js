@@ -82,7 +82,7 @@ Your previous answer was not valid. Fix these problems and return the full JSON 
 ${previousError}` : ""}`;
 }
 
-async function askGeminiText(env, h, prompt) {
+export async function askGeminiText(env, h, prompt) {
   let model = await h.pickModel(env);
   for (let attempt = 0; attempt < 2; attempt++) {
     let r;

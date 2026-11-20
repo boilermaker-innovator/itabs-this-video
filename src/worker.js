@@ -10,6 +10,7 @@ import { cardRoute } from "./share/routes.js";
 import { shareTags, videoShare } from "./share/meta.js";
 import { demoRoute } from "./demo/demo.js";
 import { renderLanding, renderEvents } from "./home.js";
+import { makePage, makeFromSlides, makeRoute } from "./make/make.js";
 import { HOME_LINK, HOME_LINK_CSS } from "./homelink.js";
 import { eventRoute } from "./talk/events.js";
 
@@ -45,6 +46,8 @@ export default {
       // The YouTube video tool, moved here from the home page, otherwise unchanged.
       if ((url.pathname === "/video" || url.pathname === "/video/") && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
       if ((url.pathname === "/events" || url.pathname === "/events/") && request.method === "GET") return html(renderEvents(url.origin));
+      if ((url.pathname === "/make" || url.pathname === "/make/") && request.method === "GET") return html(makePage());
+      if (url.pathname === "/api/make-slides" && request.method === "POST") return await makeFromSlides(request, env, TALK_HELPERS);
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
       if (url.pathname.endsWith("/card.png")) { const c = await cardRoute(request, url, env); if (c) return c; }
@@ -62,8 +65,9 @@ export default {
         const t = talkRoute(request, url); if (t) return t;
       }
       if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
+      if (url.pathname.startsWith("/m/") && !url.pathname.endsWith("/card.png")) { const mk = await makeRoute(request, url, env, TALK_HELPERS); if (mk) return mk; }
       if (url.pathname.startsWith("/demo/")) { const d = demoRoute(request, url, TALK_HELPERS); if (d) return d; }
-      if (url.pathname.startsWith("/rnd/")) { const r = await rndRoute(request, url, env, TALK_HELPERS); if (r) return r; }
+      if (url.pathname === "/rnd" || url.pathname.startsWith("/rnd/")) { const r = await rndRoute(request, url, env, TALK_HELPERS); if (r) return r; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
       console.error("Unhandled", err && err.stack || err);

@@ -75,3 +75,20 @@ export function demoShare(sample, type, origin) {
     },
   };
 }
+
+// Decks made from someone's own slides (/m/<id>, private link). Uses only the talk's title,
+// speaker and the project type picked.
+export function makeShare(rec, id, origin) {
+  const d = rec.deck, applied = PROJECT_LABELS[rec.type] || "My project";
+  return {
+    card: { kind: "talk", kicker: "My takeaway from", title: d.videoTitle, sub: d.channel,
+      pill: [{ text: "Applied to: ", tone: "soft" }, { text: applied }] },
+    tags: {
+      title: "My takeaway from " + d.videoTitle,
+      description: "A talk or lesson as a personalised iTabs deck. Tap the gold and blue i-buttons to see what it says and how it applies.",
+      url: origin + "/m/" + id,
+      image: origin + "/m/" + id + "/card.png",
+      alt: "My takeaway from " + d.videoTitle + ". " + d.channel + ". Applied to: " + applied + ". Made with iTabs.",
+    },
+  };
+}

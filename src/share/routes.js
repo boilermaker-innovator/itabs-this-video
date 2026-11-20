@@ -1,7 +1,7 @@
 // /d/<id>/card.png, /event/<id>/card.png and /demo/<sample>/<type>/card.png: share card images. Each one is drawn once, then kept
 // in KV (keyed by its exact text, so a changed title or event gets a fresh card).
 import { renderCard } from "./card.js";
-import { videoShare, eventShare, demoShare } from "./meta.js";
+import { videoShare, eventShare, demoShare, makeShare } from "./meta.js";
 import { SAMPLES, TYPES } from "../demo/decks.js";
 import { EVENTS } from "../talk/events.js";
 
@@ -23,6 +23,10 @@ export async function cardRoute(request, url, env) {
   } else if ((m = url.pathname.match(/^\/demo\/([a-z]+)\/([a-z]+)\/card\.png$/))) {
     if (!SAMPLES[m[1]] || !TYPES[m[2]]) return new Response("Not found", { status: 404 });
     spec = demoShare(m[1], m[2], url.origin).card;
+  } else if ((m = url.pathname.match(/^\/m\/([A-Za-z0-9]{16})\/card\.png$/))) {
+    const raw = env.DECKS && await env.DECKS.get("mk:" + m[1]);
+    if (!raw) return new Response("Not found", { status: 404 });
+    spec = makeShare(JSON.parse(raw), m[1], url.origin).card;
   } else return null;
 
   const k = await key(spec);

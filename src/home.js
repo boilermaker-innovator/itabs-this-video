@@ -44,6 +44,7 @@ export function renderLanding(origin) {
 .big::after{content:"›";font-size:26px;line-height:1;color:var(--muted)}
 .big.main{background:#2563eb;border-color:#2563eb;color:#fff}.big.main small{color:rgba(255,255,255,.85)}.big.main::after{color:#fff}
 .big:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.beta{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:99px;background:#13244d;border:1px solid #2563eb;color:#93c5fd;font:600 11px/1.6 inherit;letter-spacing:.04em;vertical-align:3px;font-style:normal;text-transform:uppercase}
 @media (min-width:700px){.big{min-height:80px}.big b{font-size:19px}}
 `;
   // The demo section ends with an "Or use any YouTube video" divider meant for the old page; drop it here.
@@ -53,6 +54,7 @@ export function renderLanding(origin) {
 ${demo}
  <nav class="go2" aria-label="More iTabs">
   <a class="big main" href="/video"><span class="tx"><b>Make one from a YouTube video</b><small>Paste a link, say who's watching, get cards made for you</small></span></a>
+  <a class="big" href="/make"><span class="tx"><b>Make one from your own slides <em class="beta">Beta</em></b><small>Add photos of your slides or notes, get a deck and take-home notes</small></span></a>
   <a class="big" href="/events"><span class="tx"><b>Talks and events</b><small>Take-home lessons from every talk on the night</small></span></a>
  </nav>` });
 }

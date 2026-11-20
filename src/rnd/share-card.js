@@ -70,6 +70,7 @@ export async function rndRoute(request, url, env, h) {
 
   let m = p.match(/^\/rnd\/share-card\/img\/rye-([a-z]+)\.png$/);
   if (m) return IMAGES[m[1]] ? out(IMAGES[m[1]], "image/png", { "cache-control": "public, max-age=86400" }) : null;
+  if (p === "/rnd") return out(rndHome(), "text/html; charset=utf-8", { "cache-control": "public, max-age=300" });
   if (p === BASE) return out(testPage(url.origin), "text/html; charset=utf-8", { "cache-control": "public, max-age=300" });
   if (p === BASE + "/example") return out(sharedDeck(EXAMPLE, "shop", url.origin + BASE + "/example", h), "text/html; charset=utf-8", { "cache-control": "public, max-age=300" });
 
@@ -250,4 +251,32 @@ document.getElementById('go').addEventListener('click',function(){var v=document
 </script>
 </body>
 </html>`;
+}
+
+// /rnd: the list of R&D tests. Add a line to RND_TESTS for each new test.
+const RND_TESTS = [
+  { href: BASE, title: "Share card", text: "A 1200×630 preview card for sharing talk decks on Facebook and LinkedIn, using Rye's talk." },
+];
+function rndHome() {
+  const items = RND_TESTS.map((x) => '<a class="t" href="' + esc(x.href) + '"><span class="tag">Test · not live</span><b>' + esc(x.title) + "</b><small>" + esc(x.text) + "</small></a>").join("\n  ");
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>R&amp;D · iTabs</title>
+<style>
+:root{--bg:#050508;--card:#111118;--line:rgba(255,255,255,.1);--text:#f4f4f7;--muted:#a0a0b0}
+*{box-sizing:border-box;margin:0}body{background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;display:flex;justify-content:center;padding:24px 16px}
+main{width:100%;max-width:520px;display:flex;flex-direction:column;gap:14px}
+.home{color:#60a5fa;font-weight:600;font-size:14px;text-decoration:none}
+h1{font-size:28px;margin:6px 0 0}p{color:var(--muted);font-size:15px}
+.t{display:block;padding:18px;border-radius:16px;background:var(--card);border:1px solid var(--line);color:var(--text);text-decoration:none}
+.t:hover{border-color:#2563eb}.t b{display:block;font-size:18px;margin-top:8px}.t small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;background:#13244d;border:1px solid #2563eb;color:#93c5fd;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
+</style></head><body><main>
+  <a class="home" href="/">‹ Home</a>
+  <h1>R&amp;D</h1>
+  <p>Experiments being tested. They're not linked from the live pages and may change or disappear.</p>
+  ${items}
+  <footer>Made with iTabs · R&amp;D</footer>
+</main></body></html>`;
 }

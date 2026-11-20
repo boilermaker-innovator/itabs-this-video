@@ -1074,7 +1074,7 @@ test("demo: sample deck pages are ready-made (no AI), with share card, tags and 
   assert.match(og["og:image:alt"], /Sample · made up for this demo, not official training\. Applied to: Trades/);
   assert.match(html, /From the lesson<\/span>/); assert.doesNotMatch(html, /From the video<\/span>/);
   assert.match(html, /Sample deck · made up for this demo, not official training\./);
-  assert.match(html, /Want one from your own talk\?/); assert.match(html, /Upload your slides · Coming soon/);
+  assert.match(html, /Want one from your own talk\?/); assert.match(html, /<a class=\\"up\\" href=\\"\/make\\">Upload your slides<\/a>/); assert.doesNotMatch(html, /Coming soon/);
   assert.match(html, /"forWho": "a trades business"/);
   const talk = await (await get(e, "/demo/aidan/startup")).text();
   assert.match(talk, /href="\/talk\/aidan"[^>]*>Read the talk/); assert.match(talk, /From the talk<\/span>/);
@@ -1085,4 +1085,148 @@ test("demo: sample deck pages are ready-made (no AI), with share card, tags and 
   const notes = await get(e, "/demo/electrical/notes.md");
   assert.match(notes.headers.get("content-disposition"), /electrical-safety\.md/);
   assert.match(await notes.text(), /General awareness only/);
+});
+
+const IMG = "/9j/" + "A".repeat(400);
+const NOTES = `# Ladder safety basics
+
+**Sam Lee**
+
+> **Who it's for:** anyone who uses ladders at work.
+
+---
+
+## Your homework
+
+**Check every ladder before you climb it.**
+
+You're done when you've checked the ladders you use this week.
+
+---
+
+## The big idea
+
+**Set it up right, every time.**
+
+Most ladder falls come from set-up.
+
+## Key points
+
+1. **Inspect first.** Look for damage.
+2. **Three points of contact.** Two hands and a foot.
+
+> **What "three points of contact" means:** two hands and a foot on the ladder.
+
+---
+
+## How to apply this to your own work
+
+Copy everything in the box below and paste it into your own AI.
+
+\`\`\`text
+I saw slides on ladder safety basics. The idea: set it up right, every time.
+1. Inspect first. 2. Three points of contact.
+Help me apply this to my own work, one step at a time.
+Keep explanations short and plain. Ask before assuming anything about my work.
+\`\`\`
+
+---
+
+## Check yourself
+
+- [ ] I inspected my ladder
+- [ ] I kept three points of contact
+`;
+const makePost = (e, meta, images = [IMG, IMG], ip = "5.6.7.8") => worker.fetch(new Request("https://x.dev/api/make-slides", {
+  method: "POST", headers: { "content-type": "text/plain;charset=utf-8", "CF-Connecting-IP": ip }, body: JSON.stringify(meta) + "\n" + images.join("\n") }), e);
+const okMeta = { name: "", title: "", type: "trades", ok: true };
+
+test("make: /make page (Beta) has the upload, tick box, one-question project step and disclaimer", async () => {
+  const html = await (await get(env(), "/make")).text();
+  assert.match(html, /Make one from your own slides/); assert.match(html, /BETA/);
+  assert.match(html, /accept="image\/\*" multiple/); assert.match(html, /Up to 20, in order/);
+  assert.match(html, /Speaker or teacher/); assert.match(html, /Talk or lesson title/);
+  assert.match(html, /I'm the speaker, or I'm sharing my own notes from this talk or lesson\./);
+  assert.match(html, /Step 1 of 2/); assert.match(html, /What's your project about\?/);
+  for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes("<span>" + label + "</span>"), label);
+  assert.match(html, /Study helper and memory jogger only\. Always check official sources, the Wiring Rules or your supervisor\./);
+  assert.match(html, /class="homelink" href="\/">‹ Home/);
+  assert.doesNotMatch(html, /#6c5ce7|#a29bfe|purple/i);
+});
+
+test("make: photos become notes, then a deck, at a private link; photos aren't kept", async () => {
+  const e = env(); geminiQueue.push(NOTES, goodDeck(6));
+  const r = await makePost(e, { ...okMeta, name: "Sam Lee", title: "Ladder safety basics" });
+  assert.equal(r.status, 200);
+  const { id, path } = await r.json();
+  assert.match(id, /^[A-Za-z0-9]{16}$/); assert.equal(path, "/m/" + id);
+  const gem = calls.filter((c) => c.url.includes(":generateContent"));
+  assert.equal(gem.length, 2, "one call to read the images, one to make the deck");
+  const first = JSON.parse(gem[0].body);
+  assert.equal(first.contents[0].parts.filter((p) => p.inlineData && p.inlineData.mimeType === "image/jpeg").length, 2);
+  assert.match(first.contents[0].parts.at(-1).text, /The speaker or teacher is: Sam Lee/);
+  const stored = e.DECKS.m.get("mk:" + id).v;
+  assert.ok(!stored.includes("AAAAAAAAAA"), "photos are not stored");
+  const rec = JSON.parse(stored);
+  assert.match(rec.md, /Notes made by AI from photos of slides or notes, so some parts may be missing/);
+  assert.match(rec.md, /Study helper and memory jogger only/);
+  // Deck page
+  const deck = await get(e, path);
+  assert.equal(deck.status, 200); assert.match(deck.headers.get("x-robots-tag"), /noindex/);
+  const dh = await deck.text(), og = ogOf(dh);
+  assert.equal(og["og:title"], "My takeaway from Ladder safety basics"); assert.equal(og["og:image"], "https://x.dev/m/" + id + "/card.png");
+  assert.match(dh, /Study helper and memory jogger only/); assert.match(dh, /mailto:[^?"]+\?subject=Report%20an%20iTabs%20page/);
+  assert.match(dh, /See the full notes/); assert.match(dh, /href="\/m\/[A-Za-z0-9]{16}\/notes">See the full notes/);
+  // Notes page
+  const notes = await get(e, path + "/notes");
+  assert.equal(notes.status, 200);
+  const nh = await notes.text();
+  for (const s of ["<h1>Ladder safety basics</h1>", "Who it's for:", "Your homework", "<h2>The big idea</h2>", "<h2>Key points</h2>", "What &quot;three points of contact&quot; means:", 'id="promptCopy"', "<h2>Check yourself</h2>", 'role="checkbox"', "Download the MD", "Report this page", "Study helper and memory jogger only"])
+    assert.ok(nh.includes(s), "notes page has " + s);
+  assert.match(nh, /noindex, nofollow/);
+  const md = await get(e, path + "/notes.md");
+  assert.match(md.headers.get("content-disposition"), /ladder-safety-basics\.md/);
+  assert.equal(await md.text(), rec.md);
+  const png = new Uint8Array(await (await get(e, path + "/card.png")).arrayBuffer());
+  assert.deepEqual(pngInfo(png), { w: 1200, h: 630, type: 3, sig: "PNG" });
+  // Not listed anywhere
+  for (const p of ["/events", "/event/claude-for-everyone-perth", "/"]) assert.ok(!(await (await get(e, p)).text()).includes(id), p);
+  assert.equal((await get(e, "/m/AAAAAAAAAAAAAAAA")).status, 404);
+});
+
+test("make: checks the upload before any AI call, and has its own daily limits", async () => {
+  let e = env();
+  assert.equal((await makePost(e, { ...okMeta, ok: false })).status, 400, "tick box required");
+  assert.equal((await makePost(e, { ...okMeta, type: "" })).status, 400);
+  assert.equal((await makePost(e, okMeta, [])).status, 400);
+  assert.equal((await makePost(e, okMeta, Array(21).fill(IMG))).status, 400, "up to 20");
+  assert.equal((await makePost(e, okMeta, ['/9j/AAA"},{"x":"' + "A".repeat(200)])).status, 400, "only base64 JPEG data");
+  assert.equal((await makePost(e, okMeta, ["iVBOR" + "A".repeat(300)])).status, 400, "JPEG only");
+  const day = new Date().toISOString().slice(0, 10);
+  await e.DECKS.put("n:make:" + day, "20");
+  const r = await makePost(e, okMeta);
+  assert.equal(r.status, 429); assert.match((await r.json()).error, /today's limit/);
+  e = env(); await e.DECKS.put("n:makecalls:" + day, "60");
+  assert.equal((await makePost(e, okMeta)).status, 429);
+  assert.equal(calls.filter((c) => c.url.includes(":generateContent")).length, 0, "no AI calls for any of these");
+});
+
+test("make: incomplete notes get one retry; a second miss fails cleanly", async () => {
+  const e = env(); geminiQueue.push("# Just a title\n", NOTES, goodDeck(6));
+  assert.equal((await makePost(e, okMeta)).status, 200);
+  const e2 = env(); geminiQueue.push("nope", "still nope");
+  const r = await makePost(e2, okMeta);
+  assert.equal(r.status, 502); assert.match((await r.json()).error, /couldn't make full notes/);
+});
+
+test("home has the third button, sample decks link to /make, and /rnd lists the tests", async () => {
+  const home = await (await get(env(), "/")).text();
+  const v = home.indexOf('href="/video"'), mk = home.indexOf('href="/make"'), ev = home.indexOf('href="/events"');
+  assert.ok(v > 0 && mk > v && ev > mk, "video, then slides, then events");
+  assert.match(home, /Make one from your own slides <em class="beta">Beta<\/em>/);
+  const rnd = await get(env(), "/rnd");
+  assert.equal(rnd.status, 200);
+  const rh = await rnd.text();
+  assert.match(rh, /href="\/rnd\/share-card"><span class="tag">Test · not live<\/span><b>Share card<\/b>/);
+  assert.match(rh, /noindex/);
 });

@@ -8,8 +8,8 @@ import HEIGHTS_MD from "./notes/working-at-heights.md";
 import WELDING_MD from "./notes/welding-basics.md";
 import ELECTRICAL_MD from "./notes/electrical-safety.md";
 
-// Flip to true once /rnd/upload exists; until then the end-of-deck button says "Coming soon".
-export const UPLOAD_READY = false;
+// The end-of-deck "Upload your slides" button links to /make (set to false to show "Coming soon" instead).
+export const UPLOAD_READY = true;
 const NOTES = {
   heights: [HEIGHTS_MD, "working-at-heights.md"],
   welding: [WELDING_MD, "welding-basics.md"],
@@ -39,7 +39,7 @@ function demoPage(data, sample, type, origin, h) {
     ? 'Sample deck · made up for this demo, not official training. <small>· <a href="' + s.notes + '" style="color:var(--gold);text-decoration:none;font-weight:600">Notes</a> · <a href="/#try" style="color:var(--gold);text-decoration:none;font-weight:600">Try another sample</a> '
     : "Sample deck. <small>· <a href=\"" + s.notes + "\" style=\"color:var(--gold);text-decoration:none;font-weight:600\">Read the talk</a> · <a href=\"/#try\" style=\"color:var(--gold);text-decoration:none;font-weight:600\">Try another sample</a> ";
   const cta = UPLOAD_READY
-    ? '<a class="up" href="/rnd/upload">Upload your slides</a>'
+    ? '<a class="up" href="/make">Upload your slides</a>'
     : '<span class="up soon" aria-disabled="true">Upload your slides · Coming soon</span>';
   const extras = `<style>
 .cta{margin-top:14px;padding:14px;border-radius:12px;background:#13244d;border:1px solid #2563eb;text-align:center}
