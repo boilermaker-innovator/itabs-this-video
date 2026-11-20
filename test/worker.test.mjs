@@ -867,3 +867,23 @@ test("no purple on talk pages, the event page, talk decks' link or the skill tem
     assert.doesNotMatch(text, PURPLE, path);
   }
 });
+
+test("event: Claude in Motion, Adelaide has no speakers yet and isn't linked from Perth", async () => {
+  const r = await get(env(), "/event/claude-in-motion-adelaide");
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.match(html, /<h1>Claude in Motion, Adelaide<\/h1>/);
+  assert.match(html, /<span>Claude Community Australia<\/span>/);
+  assert.match(html, /<span>Venue to be announced<\/span>/);
+  assert.match(html, /<span>Tuesday 24 November 2026, 6:00 pm<\/span>/);
+  assert.match(html, /A night for the creative side of Claude\. Every talk from the night, as a take-home lesson\./);
+  assert.match(html, /<div class="talk empty">Speakers' talks will appear here after the night\.<\/div>/);
+  assert.doesNotMatch(html, /class="talk soon"|<a class="talk"/, "no speaker cards");
+  assert.match(html, /src="\/event\/claude-in-motion-adelaide\/qr\.png"/);
+  assert.match(html, /href="\/talk\/skill" download>Add your talk/);
+  assert.match(html, /<footer>Made with iTabs · Jon/);
+  assert.equal((await get(env(), "/event/claude-in-motion-adelaide/qr.png")).headers.get("content-type"), "image/png");
+  for (const path of ["/event/claude-for-everyone-perth", "/talk/aidan", "/talk/rye"])
+    assert.doesNotMatch(await (await get(env(), path)).text(), /claude-in-motion|Claude in Motion/i, path + " doesn't link to the Adelaide event");
+  assert.doesNotMatch(html, /#6c5ce7|#a29bfe|108,\s*92,\s*231/i, "no purple");
+});

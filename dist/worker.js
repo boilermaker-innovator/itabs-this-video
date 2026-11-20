@@ -1221,6 +1221,9 @@ var SKILL_default = '---\nname: itabs-this-talk\ndescription: \'Turn a talk into
 // src/talk/events/claude-for-everyone-perth-qr.png
 var claude_for_everyone_perth_qr_default = __toBinary("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");
 
+// src/talk/events/claude-in-motion-adelaide-qr.png
+var claude_in_motion_adelaide_qr_default = __toBinary("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");
+
 // src/talk/events.js
 var SITE = "itabs-this-video.jgwynne7.workers.dev";
 var EVENTS = {
@@ -1237,9 +1240,18 @@ var EVENTS = {
       { speaker: "Aidan Morgan", title: "Quality gates for agents: Make bad code fail", slug: "aidan" },
       { speaker: "Rye Smith", title: "Getting found by AI: how Spruik runs SEO with Claude", slug: "rye" }
     ]
+  },
+  "claude-in-motion-adelaide": {
+    name: "Claude in Motion, Adelaide",
+    host: "Claude Community Australia",
+    venue: "Venue to be announced",
+    date: "Tuesday 24 November 2026, 6:00 pm",
+    intro: "A night for the creative side of Claude. Every talk from the night, as a take-home lesson.",
+    talks: []
+    // No speakers yet: the page shows "Speakers' talks will appear here after the night."
   }
 };
-var EVENT_QR = { "claude-for-everyone-perth": claude_for_everyone_perth_qr_default };
+var EVENT_QR = { "claude-for-everyone-perth": claude_for_everyone_perth_qr_default, "claude-in-motion-adelaide": claude_in_motion_adelaide_qr_default };
 var esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 function eventForTalk(slug) {
   for (const [id, ev] of Object.entries(EVENTS)) if (ev.talks.some((t) => t.slug === slug)) return { id, ...ev };
@@ -1260,7 +1272,7 @@ function eventRoute(request, url) {
 function renderEvent(id) {
   const ev = EVENTS[id];
   const address = SITE + "/event/" + id;
-  const cards = ev.talks.map((t) => {
+  const cards = !ev.talks.length ? `<div class="talk empty">Speakers' talks will appear here after the night.</div>` : ev.talks.map((t) => {
     const inner = '<span class="who">' + esc(t.speaker) + "</span>" + (t.title ? '<span class="what">' + esc(t.title) + "</span>" : "");
     return t.slug ? '<a class="talk" href="/talk/' + esc(t.slug) + '">' + inner + '<span class="go">Read the talk \u2192</span></a>' : '<div class="talk soon" aria-disabled="true">' + inner + '<span class="badge">Slides coming soon</span></div>';
   }).join("\n      ");
@@ -1287,6 +1299,7 @@ function renderEvent(id) {
   .lead { margin-top:14px; font-size:17px; font-weight:600; }
   h2 { font-size:21px; line-height:1.25; margin-bottom:12px; }
   .talks { display:flex; flex-direction:column; gap:10px; }
+  .empty { padding:22px 16px; text-align:center; color:var(--muted); font-size:16px; }
   .talk { display:block; padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); text-decoration:none; }
   a.talk { border-color:rgba(37,99,235,.6); }
   a.talk:active { transform:scale(.98); }

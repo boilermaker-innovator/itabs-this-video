@@ -8,6 +8,7 @@
 // (src/talk/events/<id>-qr.png, pointing at https://itabs-this-video.jgwynne7.workers.dev/event/<id>)
 // and add it to EVENT_QR below.
 import PERTH_QR from "./events/claude-for-everyone-perth-qr.png";
+import ADELAIDE_QR from "./events/claude-in-motion-adelaide-qr.png";
 
 export const SITE = "itabs-this-video.jgwynne7.workers.dev";
 
@@ -26,9 +27,17 @@ export const EVENTS = {
       { speaker: "Rye Smith", title: "Getting found by AI: how Spruik runs SEO with Claude", slug: "rye" },
     ],
   },
+  "claude-in-motion-adelaide": {
+    name: "Claude in Motion, Adelaide",
+    host: "Claude Community Australia",
+    venue: "Venue to be announced",
+    date: "Tuesday 24 November 2026, 6:00 pm",
+    intro: "A night for the creative side of Claude. Every talk from the night, as a take-home lesson.",
+    talks: [],   // No speakers yet: the page shows "Speakers' talks will appear here after the night."
+  },
 };
 
-const EVENT_QR = { "claude-for-everyone-perth": PERTH_QR };
+const EVENT_QR = { "claude-for-everyone-perth": PERTH_QR, "claude-in-motion-adelaide": ADELAIDE_QR };
 
 export const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -56,7 +65,9 @@ export function eventRoute(request, url) {
 export function renderEvent(id) {
   const ev = EVENTS[id];
   const address = SITE + "/event/" + id;
-  const cards = ev.talks.map((t) => {
+  const cards = !ev.talks.length
+    ? '<div class="talk empty">Speakers\' talks will appear here after the night.</div>'
+    : ev.talks.map((t) => {
     const inner = '<span class="who">' + esc(t.speaker) + "</span>" + (t.title ? '<span class="what">' + esc(t.title) + "</span>" : "");
     return t.slug
       ? '<a class="talk" href="/talk/' + esc(t.slug) + '">' + inner + '<span class="go">Read the talk →</span></a>'
@@ -85,6 +96,7 @@ export function renderEvent(id) {
   .lead { margin-top:14px; font-size:17px; font-weight:600; }
   h2 { font-size:21px; line-height:1.25; margin-bottom:12px; }
   .talks { display:flex; flex-direction:column; gap:10px; }
+  .empty { padding:22px 16px; text-align:center; color:var(--muted); font-size:16px; }
   .talk { display:block; padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--text); text-decoration:none; }
   a.talk { border-color:rgba(37,99,235,.6); }
   a.talk:active { transform:scale(.98); }
