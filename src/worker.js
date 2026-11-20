@@ -5,6 +5,7 @@ import SKILL from "./skill.md";
 import OG_PNG from "./og.png";
 import { talkRoute, talkNotes } from "./talk/talk.js";
 import { makeTalkDeck, showTalkDeck } from "./talk/apply.js";
+import { rndRoute } from "./rnd/share-card.js";
 import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
@@ -52,6 +53,7 @@ export default {
         const t = talkRoute(request, url); if (t) return t;
       }
       if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
+      if (url.pathname.startsWith("/rnd/")) { const r = await rndRoute(request, url, env, TALK_HELPERS); if (r) return r; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
       console.error("Unhandled", err && err.stack || err);

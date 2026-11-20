@@ -136,6 +136,7 @@ Old workers.dev links keep working.
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
 | iTabs This Talk | Talk pages under `/talk`, kept apart from the video code in `src/talk/`. `/talk/aidan` is Aidan Morgan's "Make bad code fail" page (MD and QR code alongside), and `/talk/skill` downloads the iTabs This Talk skill. Copied from the itabs-this-talk repo. |
 | Apply this talk | On every talk page, under the homework card: pick a project type, add a line about it, tap **Make my deck**. The same Gemini set-up and deck template as the videos make a short deck from the talk's notes (gold = what the speaker said, blue = for your project), saved at `/talk/<name>/d/<id>`. Its own limits in `TALK_LIMITS` (`src/talk/apply.js`): 30 decks and 60 AI calls a day in total, 3 decks an hour per visitor. Talk decks are stored apart from video decks, so they don't count towards the video limits or appear in `/stats`. |
+| R&D: share card | `/rnd/share-card` (not linked from anywhere live). Tests sharing talk decks: 1200×630 preview images per project type (Rye's talk, drawn by `node scripts/make-share-images.mjs`), an example deck at `/rnd/share-card/example`, a share-ready view of any real Rye deck at `/rnd/share-card/d/<id>`, full Open Graph and Twitter tags, and a Share my deck sheet (Facebook, LinkedIn, Copy link). Code in `src/rnd/`. |
 
 The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.
 

@@ -887,3 +887,51 @@ test("event: Claude in Motion, Adelaide has no speakers yet and isn't linked fro
     assert.doesNotMatch(await (await get(env(), path)).text(), /claude-in-motion|Claude in Motion/i, path + " doesn't link to the Adelaide event");
   assert.doesNotMatch(html, /#6c5ce7|#a29bfe|108,\s*92,\s*231/i, "no purple");
 });
+
+const ogOf = (html) => Object.fromEntries([...html.matchAll(/<meta (?:property|name)="((?:og|twitter):[^"]+)" content="([^"]*)">/g)].map((m) => [m[1], m[2]]));
+
+test("rnd share card: test page, preview images and example deck with full Open Graph + Twitter tags", async () => {
+  const page = await get(env(), "/rnd/share-card");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /noindex/); assert.match(html, /Share card for talk decks/);
+  for (const t of ["cafe", "trades", "shop", "startup", "other"]) {
+    const img = await get(env(), "/rnd/share-card/img/rye-" + t + ".png");
+    assert.equal(img.headers.get("content-type"), "image/png");
+    const b = new Uint8Array(await img.arrayBuffer());
+    const dv = new DataView(b.buffer);
+    assert.deepEqual([dv.getUint32(16), dv.getUint32(20)], [1200, 630], t + " is 1200x630");
+    assert.ok(b.length < 300000, t + " is small enough for previews");
+  }
+  const deck = await (await get(env(), "/rnd/share-card/example")).text();
+  const og = ogOf(deck);
+  assert.equal(og["og:title"], "My takeaway from Rye Smith&#39;s talk");
+  assert.equal(og["twitter:title"], og["og:title"]);
+  assert.match(og["og:description"], /^Getting found by AI: how Spruik runs SEO with Claude, applied to an online shop\./);
+  assert.equal(og["og:image"], "https://x.dev/rnd/share-card/img/rye-shop.png");
+  assert.equal(og["twitter:image"], og["og:image"]);
+  assert.equal(og["og:image:width"], "1200"); assert.equal(og["og:image:height"], "630");
+  assert.equal(og["og:url"], "https://x.dev/rnd/share-card/example");
+  assert.equal(og["twitter:card"], "summary_large_image");
+  assert.ok(og["og:image:alt"] && og["twitter:image:alt"] && og["og:site_name"] === "iTabs" && og["og:type"] === "website");
+  assert.equal((deck.match(/<title>/g) || []).length, 1, "one title tag");
+  assert.match(deck, /const DATA = /, "real deck template with its i-buttons");
+  assert.match(deck, /From the talk<\/span>/);
+  assert.match(deck, /sharer\.php\?u='\+e/); assert.match(deck, /share-offsite\/\?url='\+e/); assert.match(deck, /Copy link/);
+  assert.doesNotMatch(deck + html, /#6c5ce7|#a29bfe|108,\s*92,\s*231/i, "no purple");
+});
+
+test("rnd share card: share-ready view of a real Rye deck uses its project type; live deck page unchanged", async () => {
+  const e = env(); geminiQueue.push(goodDeck(6));
+  const { id, path } = await (await talkPost(e, { talk: "rye", type: "trades" })).json();
+  e.DECKS.getWithMetadata = async (k) => ({ value: await e.DECKS.get(k), metadata: e.DECKS.m.has(k) ? e.DECKS.m.get(k).o.metadata : null });
+  const og = ogOf(await (await get(e, "/rnd/share-card/d/" + id)).text());
+  assert.equal(og["og:image"], "https://x.dev/rnd/share-card/img/rye-trades.png");
+  assert.equal(og["og:url"], "https://x.dev/rnd/share-card/d/" + id);
+  assert.match(og["og:description"], /applied to a trades business/);
+  assert.doesNotMatch(await (await get(e, path)).text(), /Share my deck|og:image:width/, "live talk deck page has no R&D additions");
+  assert.equal((await get(e, "/rnd/share-card/d/Nope12345")).status, 404);
+  geminiQueue.push(goodDeck(6));
+  const a = await (await talkPost(e, { talk: "aidan", type: "cafe" })).json();
+  assert.equal((await get(e, "/rnd/share-card/d/" + a.id)).status, 404, "only Rye's talk in this test");
+});
