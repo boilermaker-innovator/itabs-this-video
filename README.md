@@ -135,6 +135,7 @@ Old workers.dev links keep working.
 | How it works + example | Under the form: a 3-step strip, then a live swipeable deck chosen by `FEATURED_DECK` (Part G). Votes from the example aren't counted. |
 | Stats | `/stats`, protected by the `STATS_PIN` secret (see Part F). |
 | iTabs This Talk | Talk pages under `/talk`, kept apart from the video code in `src/talk/`. `/talk/aidan` is Aidan Morgan's "Make bad code fail" page (MD and QR code alongside), and `/talk/skill` downloads the iTabs This Talk skill. Copied from the itabs-this-talk repo. |
+| Apply this talk | On every talk page, under the homework card: pick a project type, add a line about it, tap **Make my deck**. The same Gemini set-up and deck template as the videos make a short deck from the talk's notes (gold = what the speaker said, blue = for your project), saved at `/talk/<name>/d/<id>`. Its own limits in `TALK_LIMITS` (`src/talk/apply.js`): 30 decks and 60 AI calls a day in total, 3 decks an hour per visitor. Talk decks are stored apart from video decks, so they don't count towards the video limits or appear in `/stats`. |
 
 The deck template file (`src/template.html`) is never edited. Preview tags and the extra buttons are added when the page is served.
 

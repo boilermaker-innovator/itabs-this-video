@@ -788,3 +788,74 @@ test("event: Claude for Everyone, Perth page lists every talk in order and shows
   assert.equal((await get(env(), "/event/nope")).status, 404);
   assert.equal((await get(env(), "/event/claude-for-everyone-perth/")).status, 200);
 });
+
+const talkPost = (e, body, ip = "1.2.3.4") => worker.fetch(new Request("https://x.dev/api/talk-deck", { method: "POST", headers: { "content-type": "application/json", "CF-Connecting-IP": ip }, body: JSON.stringify(body) }), e);
+
+test("talk apply box: on every talk page, under the homework card", async () => {
+  for (const slug of ["aidan", "rye"]) {
+    const html = await (await get(env(), "/talk/" + slug)).text();
+    const hw = html.indexOf('class="card homework"'), box = html.indexOf('id="apply"'), idea = html.indexOf("<h2>The big idea</h2>");
+    assert.ok(hw > 0 && box > hw && box < idea, slug + ": box sits right after the homework card");
+    assert.match(html, /<h2>Apply this talk to my project<\/h2>/);
+    assert.match(html, /What's your project about\?/);
+    for (const label of ["Cafe or food", "Trades", "Online shop", "Startup or app", "Other"]) assert.ok(html.includes(">" + label + "</button>"), label);
+    assert.match(html, /Tell us a bit more \(optional\)/); assert.match(html, /placeholder="e\.g\. I run a coffee van in Perth"/);
+    assert.match(html, />Make my deck<\/button>/);
+    assert.ok(html.includes('var TALK="' + slug + '"'), "box knows its talk");
+    assert.match(html, /id="promptCopy"/, "Copy this prompt is still there");
+  }
+});
+
+test("talk deck: built from the talk's notes, saved apart from video decks, shown in the deck template", async () => {
+  const e = env(); geminiQueue.push(goodDeck(7));
+  const r = await talkPost(e, { talk: "aidan", type: "cafe", more: "I run a coffee van in Perth" });
+  assert.equal(r.status, 200);
+  const { id, path } = await r.json();
+  assert.equal(path, "/talk/aidan/d/" + id);
+  const prompt = JSON.parse(calls.find((c) => c.url.includes(":generateContent")).body).contents[0].parts;
+  assert.equal(prompt.length, 1, "text only, no video");
+  assert.match(prompt[0].text, /<talk_notes>\n# Quality gates for agents: Make bad code fail/);
+  assert.match(prompt[0].text, /Project type: Cafe or food\nMore about it: I run a coffee van in Perth/);
+  assert.match(prompt[0].text, /"From the talk"/);
+  assert.ok(e.DECKS.m.has("talkdeck:" + id) && ![...e.DECKS.m.keys()].some((k) => k.startsWith("deck:")), "not stored as a video deck");
+  const saved = JSON.parse(e.DECKS.m.get("talkdeck:" + id).v);
+  assert.equal(saved.videoTitle, "Quality gates for agents: Make bad code fail"); assert.equal(saved.channel, "Aidan Morgan, Bankwest");
+  assert.equal(saved.videoId, ""); assert.ok(saved.cards.every((c) => c.time === "" && c.seconds === 0));
+  const page = await get(e, path);
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /From the talk<\/span>/); assert.doesNotMatch(html, /From the video<\/span>/);
+  assert.match(html, /A talk, applied to your project\./); assert.match(html, /href="\/talk\/aidan"[^>]*>Back to the talk/);
+  assert.match(html, /Personalised for a coffee van owner in Perth · A talk, applied to your project/);
+  assert.equal((await get(e, "/talk/rye/d/" + id)).status, 404, "deck only shows under its own talk");
+  assert.equal((await get(e, "/d/" + id)).status, 404, "not a video deck");
+});
+
+test("talk deck: checks input and has its own daily limits", async () => {
+  let e = env();
+  assert.equal((await talkPost(e, { talk: "aidan", type: "" })).status, 400);
+  assert.equal((await talkPost(e, { talk: "aidan", type: "spaceship" })).status, 400);
+  assert.equal((await talkPost(e, { talk: "nobody", type: "cafe" })).status, 404);
+  assert.equal((await talkPost(e, { talk: "aidan", type: "cafe", more: "x".repeat(201) })).status, 400);
+  const day = new Date().toISOString().slice(0, 10);
+  await e.DECKS.put("n:talkdecks:" + day, "30");
+  const r = await talkPost(e, { talk: "rye", type: "shop" });
+  assert.equal(r.status, 429); assert.match((await r.json()).error, /today's limit for talk decks/);
+  assert.equal(calls.filter((c) => c.url.includes(":generateContent")).length, 0, "no AI call once the limit is hit");
+  e = env(); await e.DECKS.put("n:talkcalls:" + day, "60");
+  assert.equal((await talkPost(e, { talk: "rye", type: "shop" })).status, 429);
+  e = env(); await e.DECKS.put("n:decks:" + day, "50");
+  geminiQueue.push(goodDeck(6));
+  assert.equal((await talkPost(e, { talk: "rye", type: "trades" })).status, 200, "the video limit doesn't block talk decks");
+  e = env();
+  for (let i = 0; i < 3; i++) { geminiQueue.push(goodDeck(6)); assert.equal((await talkPost(e, { talk: "rye", type: "startup" }, "9.9.9.9")).status, 200); }
+  assert.equal((await talkPost(e, { talk: "rye", type: "startup" }, "9.9.9.9")).status, 429, "3 an hour per visitor");
+});
+
+test("talk deck: retries once on a bad answer, then gives up cleanly", async () => {
+  const e = env(); geminiQueue.push({ cards: [] }, goodDeck(6));
+  assert.equal((await talkPost(e, { talk: "rye", type: "other" })).status, 200);
+  const e2 = env(); geminiQueue.push({ cards: [] }, { cards: [] });
+  const r = await talkPost(e2, { talk: "rye", type: "other" });
+  assert.equal(r.status, 502); assert.match((await r.json()).error, /muddled/);
+});

@@ -3,7 +3,8 @@ import TEMPLATE from "./template.html";
 import PAGE from "./page.html";
 import SKILL from "./skill.md";
 import OG_PNG from "./og.png";
-import { talkRoute } from "./talk/talk.js";
+import { talkRoute, talkNotes } from "./talk/talk.js";
+import { makeTalkDeck, showTalkDeck } from "./talk/apply.js";
 import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
@@ -45,7 +46,11 @@ export default {
       if (url.pathname === "/og.png") return new Response(OG_PNG, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
       if (url.pathname === "/stats" && (request.method === "GET" || request.method === "POST")) return await stats(request, env);
       if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
-      if (url.pathname.startsWith("/talk/")) { const t = talkRoute(request, url); if (t) return t; }
+      if (url.pathname === "/api/talk-deck" && request.method === "POST") return await makeTalkDeck(request, env, TALK_HELPERS, talkNotes);
+      if (url.pathname.startsWith("/talk/")) {
+        const td = await showTalkDeck(request, url, env, TALK_HELPERS); if (td) return td;
+        const t = talkRoute(request, url); if (t) return t;
+      }
       if (url.pathname.startsWith("/event/")) { const e = eventRoute(request, url); if (e) return e; }
       return html(messagePage("Page not found", "That link doesn't go anywhere. Make your own iTabs instead?"), 404);
     } catch (err) {
@@ -698,3 +703,6 @@ h1{font-size:22px;margin:0 0 8px}p{color:#a3a8b3;margin:0 0 20px}a{display:inlin
 small{display:block;margin-top:32px;color:#a3a8b3;font-size:12px}</style></head>
 <body><div><h1>${e(title)}</h1><p>${e(text)}</p><a href="/">Make my iTabs</a><small>Any YouTube video, applied to you. Made with iTabs · itabs.co</small></div></body></html>`;
 }
+
+// Shared with the talk pages' "Apply this talk to my project" (src/talk/apply.js). Nothing here changes the video side.
+const TALK_HELPERS = { pickModel, validateDeck, renderDeck, previewTags, getCount, bump, sha256, randomId, json, html, messagePage };
