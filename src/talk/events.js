@@ -9,12 +9,14 @@
 // and add it to EVENT_QR below.
 import PERTH_QR from "./events/claude-for-everyone-perth-qr.png";
 import ADELAIDE_QR from "./events/claude-in-motion-adelaide-qr.png";
+import { shareTags, eventShare } from "../share/meta.js";
 
 export const SITE = "itabs-this-video.jgwynne7.workers.dev";
 
 export const EVENTS = {
   "claude-for-everyone-perth": {
     name: "Claude for Everyone, Perth",
+    city: "Perth",
     host: "Claude Community Australia",
     venue: "Bloom, St Catherine's College",
     date: "Tuesday 17 November 2026",
@@ -29,6 +31,7 @@ export const EVENTS = {
   },
   "claude-in-motion-adelaide": {
     name: "Claude in Motion, Adelaide",
+    city: "Adelaide",
     host: "Claude Community Australia",
     venue: "Venue to be announced",
     date: "Tuesday 24 November 2026, 6:00 pm",
@@ -59,10 +62,10 @@ export function eventRoute(request, url) {
     if (!EVENT_QR[m[1]]) return null;
     return new Response(head ? null : EVENT_QR[m[1]], { headers: { ...BASE, "content-type": "image/png" } });
   }
-  return new Response(head ? null : renderEvent(m[1]), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
+  return new Response(head ? null : renderEvent(m[1], url.origin), { headers: { ...BASE, "content-type": "text/html; charset=utf-8" } });
 }
 
-export function renderEvent(id) {
+export function renderEvent(id, origin = "https://itabs-this-video.jgwynne7.workers.dev") {
   const ev = EVENTS[id];
   const address = SITE + "/event/" + id;
   const cards = !ev.talks.length
@@ -73,16 +76,13 @@ export function renderEvent(id) {
       ? '<a class="talk" href="/talk/' + esc(t.slug) + '">' + inner + '<span class="go">Read the talk →</span></a>'
       : '<div class="talk soon" aria-disabled="true">' + inner + '<span class="badge">Slides coming soon</span></div>';
   }).join("\n      ");
-  const desc = ev.intro + " " + ev.host + " · " + ev.venue + " · " + ev.date + ".";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(ev.name)} · iTabs This Talk</title>
-<meta name="description" content="${esc(desc)}">
-<meta property="og:title" content="${esc(ev.name)}">
-<meta property="og:description" content="${esc(desc)}">
+${shareTags(eventShare(ev, id, origin).tags)}
 <style>
   :root { --bg:#050508; --card:#111118; --line:rgba(255,255,255,.1); --text:#f4f4f7; --muted:#a0a0b0; --accent:#2563eb; --accent-soft:#60a5fa; --ok:#2ecc71; }
   * { box-sizing:border-box; margin:0; }

@@ -6,6 +6,8 @@ import OG_PNG from "./og.png";
 import { talkRoute, talkNotes } from "./talk/talk.js";
 import { makeTalkDeck, showTalkDeck } from "./talk/apply.js";
 import { rndRoute } from "./rnd/share-card.js";
+import { cardRoute } from "./share/routes.js";
+import { shareTags, videoShare } from "./share/meta.js";
 import { eventRoute } from "./talk/events.js";
 
 const LANGS = {
@@ -39,6 +41,7 @@ export default {
       if (url.pathname === "/" && request.method === "GET") return html(renderHome(url.origin, await featuredDeck(env)));
       if (url.pathname === "/api/make" && request.method === "POST") return await make(request, env);
       if (url.pathname === "/api/feedback" && request.method === "POST") return await feedback(request, env);
+      if (url.pathname.endsWith("/card.png")) { const c = await cardRoute(request, url, env); if (c) return c; }
       const m = url.pathname.match(/^\/d\/([A-Za-z0-9]{6,16})\/?$/);
       if (m && request.method === "GET") return await showDeck(m[1], env, url.origin, url.searchParams.has("embed"));
       if (url.pathname === "/skill.md") return new Response(SKILL, { headers: {
@@ -103,12 +106,8 @@ export function previewTags({ title, description, url, image }) {
 // The template file itself is never edited: preview tags go into <head>, and the
 // extras (Share, feedback, "Make your own") are added just before </body>.
 export function decorateDeck(page, data, id, origin, embed) {
-  const head = previewTags({
-    title: data.videoTitle,
-    description: `Personalised for ${data.forWho} · ${TAGLINE}`,
-    url: `${origin}/d/${id}`,
-    image: data.videoId ? `https://img.youtube.com/vi/${data.videoId}/hqdefault.jpg` : `${origin}/og.png`,
-  });
+  // Share card: "My takeaway from <video title>", with no words the reader typed.
+  const head = shareTags(videoShare(data, id, origin).tags);
   // Embedded example on the main page: no feedback (keeps stats honest), no Share/"Make your own".
   const extras = embed ? EMBED_EXTRAS : DECK_EXTRAS.replace("__DECK_ID__", JSON.stringify(id));
   return page.replace("</title>", "</title>" + head).replace(/<\/body>\s*<\/html>\s*$/, extras + "</body></html>");

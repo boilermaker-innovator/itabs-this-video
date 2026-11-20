@@ -146,9 +146,9 @@ test("deck page has link preview tags, Share, feedback and Make your own", async
   const e = env(); geminiQueue.push(goodDeck());
   const { path } = await (await post(e, base)).json();
   const html = await (await get(e, path)).text();
-  assert.match(html, /<meta property="og:title" content="Real Title">/);
-  assert.match(html, /<meta property="og:description" content="Personalised for a coffee van owner in Perth · Any YouTube video, applied to you">/);
-  assert.match(html, /<meta property="og:image" content="https:\/\/img\.youtube\.com\/vi\/dQw4w9WgXcQ\/hqdefault\.jpg">/);
+  assert.match(html, /<meta property="og:title" content="My takeaway from Real Title">/);
+  assert.match(html, /<meta property="og:description" content="A video by Real Channel, as a personalised iTabs deck\. Tap the gold and blue i-buttons to see what it says and how it applies\.">/);
+  assert.match(html, new RegExp(`<meta property="og:image" content="https://x.dev${path}/card.png">`));
   assert.match(html, /name="twitter:card" content="summary_large_image"/);
   assert.match(html, new RegExp(`og:url" content="https://x.dev${path}"`));
   assert.ok(html.includes("navigator.share") && html.includes("Was this useful?") && html.includes("Make your own"));
@@ -160,7 +160,7 @@ test("preview tags escape quotes in titles", async () => {
   ytStatus = 500;
   const { path } = await (await post(e, base)).json();
   const html = await (await get(e, path)).text();
-  assert.ok(html.includes('content="He said &quot;hi&quot; &lt;b&gt;"'));
+  assert.ok(html.includes('content="My takeaway from He said &quot;hi&quot; &lt;b&gt;"'));
 });
 
 test("home page has preview tags, mode toggle and the skill", async () => {
@@ -934,4 +934,66 @@ test("rnd share card: share-ready view of a real Rye deck uses its project type;
   geminiQueue.push(goodDeck(6));
   const a = await (await talkPost(e, { talk: "aidan", type: "cafe" })).json();
   assert.equal((await get(e, "/rnd/share-card/d/" + a.id)).status, 404, "only Rye's talk in this test");
+});
+
+const pngInfo = (b) => { const dv = new DataView(b.buffer, b.byteOffset); return { w: dv.getUint32(16), h: dv.getUint32(20), type: b[25], sig: [...b.slice(1, 4)].map((c) => String.fromCharCode(c)).join("") }; };
+
+test("share card: video decks get a 'My takeaway from' card and full tags, with no reader words", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { id, path } = await (await post(e, base)).json();
+  const html = await (await get(e, path)).text();
+  const og = ogOf(html);
+  assert.equal(og["og:title"], "My takeaway from Real Title"); assert.equal(og["twitter:title"], og["og:title"]);
+  assert.equal(og["og:image"], "https://x.dev/d/" + id + "/card.png"); assert.equal(og["twitter:image"], og["og:image"]);
+  assert.equal(og["og:url"], "https://x.dev/d/" + id); assert.equal(og["twitter:card"], "summary_large_image");
+  assert.equal(og["og:image:width"], "1200"); assert.equal(og["og:image:height"], "630");
+  assert.equal(og["og:image:alt"], "My takeaway from Real Title, by Real Channel. Made with iTabs.");
+  const head = html.slice(0, html.indexOf("</head>"));
+  assert.doesNotMatch(head, /coffee van|Perth/, "nothing the reader typed in the preview");
+  const r = await get(e, "/d/" + id + "/card.png");
+  assert.equal(r.status, 200); assert.equal(r.headers.get("content-type"), "image/png");
+  const b = new Uint8Array(await r.arrayBuffer());
+  assert.deepEqual(pngInfo(b), { w: 1200, h: 630, type: 3, sig: "PNG" });
+  assert.ok(b.length < 100000, "small file");
+  const cached = [...e.DECKS.m.keys()].filter((k) => k.startsWith("card:"));
+  assert.equal(cached.length, 1, "drawn once and kept");
+  const again = new Uint8Array(await (await get(e, "/d/" + id + "/card.png")).arrayBuffer());
+  assert.equal(again.length, b.length);
+  assert.equal((await get(e, "/d/Nope12345/card.png")).status, 404);
+  assert.ok(![...e.DECKS.m.keys()].some((k) => k.startsWith("card:") && k.includes("Nope")));
+});
+
+test("share card: 'Applied to' shows only when a video deck has a project type", async () => {
+  const e = env(); geminiQueue.push(goodDeck());
+  const { id } = await (await post(e, base)).json();
+  const saved = JSON.parse(e.DECKS.m.get("deck:" + id).v);
+  e.DECKS.m.get("deck:" + id).v = JSON.stringify({ ...saved, projectType: "shop" });
+  const og = ogOf(await (await get(e, "/d/" + id)).text());
+  assert.match(og["og:image:alt"], /Applied to: Online shop/);
+  assert.equal((await get(e, "/d/" + id + "/card.png")).status, 200);
+});
+
+test("share card: event pages get 'Every talk from' cards and full tags", async () => {
+  for (const [id, name, when, count] of [
+    ["claude-for-everyone-perth", "Claude for Everyone, Perth", "Perth · Tuesday 17 November 2026", "5 talks"],
+    ["claude-in-motion-adelaide", "Claude in Motion, Adelaide", "Adelaide · Tuesday 24 November 2026, 6:00 pm", "Talks added after the night"]]) {
+    const e = env();
+    const html = await (await get(e, "/event/" + id)).text();
+    const og = ogOf(html);
+    assert.equal(og["og:title"], "Every talk from " + name); assert.equal(og["twitter:title"], og["og:title"]);
+    assert.equal(og["og:image"], "https://x.dev/event/" + id + "/card.png");
+    assert.equal(og["og:url"], "https://x.dev/event/" + id);
+    assert.ok(og["og:description"].endsWith(when + "."), og["og:description"]);
+    assert.equal(og["og:image:alt"], "Every talk from " + name + ". " + when + ". " + count + " · scan for take-home lessons. Made with iTabs.");
+    assert.equal((html.match(/<meta name="description"/g) || []).length, 1, "one description tag");
+    const b = new Uint8Array(await (await get(e, "/event/" + id + "/card.png")).arrayBuffer());
+    assert.deepEqual(pngInfo(b), { w: 1200, h: 630, type: 3, sig: "PNG" });
+    assert.doesNotMatch(html, /#6c5ce7|#a29bfe|108,\s*92,\s*231/i);
+  }
+  assert.equal((await get(env(), "/event/nope/card.png")).status, 404);
+});
+
+test("share card: talk deck cards (R&D) are unchanged", async () => {
+  const og = ogOf(await (await get(env(), "/rnd/share-card/example")).text());
+  assert.equal(og["og:image"], "https://x.dev/rnd/share-card/img/rye-shop.png");
 });
